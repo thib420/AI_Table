@@ -71,9 +71,13 @@ export function useTableInteractions(enrichedResults: EnrichedExaResultItem[]) {
             valB = null;
           }
           
-          const nA_Values = [null, undefined, "N/A", "Loading...", "Error"];
-          const isValANa = nA_Values.includes(valA);
-          const isValBNa = nA_Values.includes(valB);
+          // const nA_Values = [null, undefined, "N/A", "Loading...", "Error"];
+          // const isValANa = nA_Values.includes(valA);
+          // const isValBNa = nA_Values.includes(valB);
+
+          // Perform direct comparison for NA-like values to handle 'unknown' type correctly
+          const isValANa = valA === null || valA === undefined || valA === "N/A" || valA === "Loading..." || valA === "Error";
+          const isValBNa = valB === null || valB === undefined || valB === "N/A" || valB === "Loading..." || valB === "Error";
 
           if (isValANa && isValBNa) return 0;
           if (isValANa) return direction === 'asc' ? 1 : -1;
