@@ -1,6 +1,15 @@
 import Exa from "exa-js";
 import { NextResponse } from "next/server";
 
+// Define a type for the Exa search options to ensure type safety
+type ExaSearchOptions = {
+  text?: boolean;
+  category?: "linkedin profile" | "company" | "research paper" | "news" | "pdf" | "github" | "tweet" | "personal site" | "financial report";
+  numResults?: number;
+  // highlights?: boolean; // This was commented out, keep as is or add if needed
+  // Add other potential options from exa-js if necessary
+};
+
 export async function GET(request: Request) {
   try {
     // Ensure the API key is available
@@ -25,7 +34,7 @@ export async function GET(request: Request) {
 
     const exa = new Exa(apiKey);
 
-    const options = {
+    const options: ExaSearchOptions = {
       text: true,
       category: "linkedin profile",
       numResults: 5,
