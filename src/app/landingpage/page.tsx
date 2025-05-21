@@ -28,8 +28,15 @@ export default function Dashboard() {
       if (!response.ok) {
         // If API returned an error status (4xx, 5xx)
         // The body (apiResponse) might contain an error message from our API route
-        const errorMessage = apiResponse?.error || `API Error: ${response.statusText} (Status: ${response.status})`;
-        throw new Error(errorMessage);
+        let finalErrorMessage = `API Error: ${response.statusText} (Status: ${response.status})`;
+        // Check if apiResponse is an object (not an array) and has a string 'error' property
+        if (apiResponse && typeof apiResponse === 'object' && !Array.isArray(apiResponse)) {
+          const potentialErrorObject = apiResponse as { error?: unknown };
+          if (typeof potentialErrorObject.error === 'string' && potentialErrorObject.error.length > 0) {
+            finalErrorMessage = potentialErrorObject.error;
+          }
+        }
+        throw new Error(finalErrorMessage);
       }
       
       // Response is OK (2xx), now check the structure of apiResponse
