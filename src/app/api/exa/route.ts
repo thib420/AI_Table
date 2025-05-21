@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 // Define a type for the Exa search options to ensure type safety
 type ExaSearchOptions = {
-  text?: boolean;
+  text?: true;
   category?: "linkedin profile" | "company" | "research paper" | "news" | "pdf" | "github" | "tweet" | "personal site" | "financial report";
   numResults?: number;
   // highlights?: boolean; // This was commented out, keep as is or add if needed
