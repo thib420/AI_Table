@@ -40,21 +40,27 @@ export default function Dashboard() {
       }
       
       // Response is OK (2xx), now check the structure of apiResponse
-      if (apiResponse && apiResponse.data && Array.isArray(apiResponse.data.results)) {
-        // Case 1: Matches FullExaApiResponse { data: { results: [...] } }
-        setResults(apiResponse.data.results);
-      } else if (apiResponse && Array.isArray(apiResponse.results)) {
-        // Case 2: Matches if API returns { results: [...] } directly
-        setResults(apiResponse.results);
-      } else if (Array.isArray(apiResponse)) {
+      if (Array.isArray(apiResponse)) {
         // Case 3: API directly returns ExaResultItem[] (less common for this type of API but good to check)
         setResults(apiResponse);
+      } else if (apiResponse && typeof apiResponse === 'object') {
+        // Now we know apiResponse is an object, so we can check for its properties
+        if (apiResponse.data && Array.isArray(apiResponse.data.results)) {
+          // Case 1: Matches FullExaApiResponse { data: { results: [...] } }
+          setResults(apiResponse.data.results);
+        } else if (Array.isArray(apiResponse.results)) {
+          // Case 2: Matches if API returns { results: [...] } directly
+          setResults(apiResponse.results);
+        } else {
+          // If none of the expected successful object structures match
+          console.warn("Unexpected API success response structure in page.tsx (object form):", apiResponse);
+          const errorMessage = (apiResponse as { error?: string })?.error || "Unexpected API response structure after successful HTTP request.";
+          throw new Error(errorMessage);
+        }
       } else {
-        // If none of the expected successful structures match
-        console.warn("Unexpected API success response structure in page.tsx:", apiResponse);
-        // Check if the 2xx response body itself is an error object (e.g. from Exa API but not caught as HTTP error by our route)
-        const errorMessage = apiResponse?.error || "Unexpected API response structure after successful HTTP request.";
-        throw new Error(errorMessage);
+        // This case implies apiResponse is not an array and not a typical object structure we expect upon success
+        console.warn("Unknown API success response structure in page.tsx:", apiResponse);
+        throw new Error("Unknown or invalid API response structure after successful HTTP request.");
       }
 
     } catch (err) {
