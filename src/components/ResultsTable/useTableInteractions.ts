@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { ColumnDef, EnrichedExaResultItem } from './types';
+import { EnrichedExaResultItem } from './types';
 import { stableInitialAllAvailableColumns } from './columnDefinitions'; // To access accessorKey for sorting
 
 export function useTableInteractions(enrichedResults: EnrichedExaResultItem[]) {
@@ -48,8 +48,8 @@ export function useTableInteractions(enrichedResults: EnrichedExaResultItem[]) {
 
       if (columnToSort) {
         sortedResults.sort((a, b) => {
-          let valA: any;
-          let valB: any;
+          let valA: unknown;
+          let valB: unknown;
 
           if (key === 'location') {
             valA = a.location;
@@ -61,8 +61,8 @@ export function useTableInteractions(enrichedResults: EnrichedExaResultItem[]) {
             valA = a.publishedDate ? new Date(a.publishedDate).getTime() : null;
             valB = b.publishedDate ? new Date(b.publishedDate).getTime() : null;
           } else if (typeof columnToSort.accessorKey === 'string') {
-            valA = (a as any)[columnToSort.accessorKey];
-            valB = (b as any)[columnToSort.accessorKey];
+            valA = (a as EnrichedExaResultItem)[columnToSort.accessorKey as keyof EnrichedExaResultItem];
+            valB = (b as EnrichedExaResultItem)[columnToSort.accessorKey as keyof EnrichedExaResultItem];
           } else if (a.customData && b.customData && a.customData[key] !== undefined && b.customData[key] !== undefined) {
             valA = a.customData[key];
             valB = b.customData[key];

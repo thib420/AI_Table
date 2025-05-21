@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Skeleton } from "@/components/ui/skeleton";
 import { ColumnDef, EnrichedExaResultItem } from '@/components/ResultsTable/types';
 
@@ -9,7 +10,7 @@ export const stableInitialAllAvailableColumns: ColumnDef[] = [
       {item.isFetchingProfileImage ? (
         <Skeleton className="h-8 w-8 rounded-full" />
       ) : item.profileImageUrl ? (
-        <img src={item.profileImageUrl} alt={item.author || 'Profile'} className="h-8 w-8 rounded-full object-cover" />
+        <Image src={item.profileImageUrl} alt={item.author || 'Profile'} width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
       ) : (
         <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs">
           {item.author ? item.author.substring(0, 1).toUpperCase() : '?'}

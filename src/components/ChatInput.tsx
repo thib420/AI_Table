@@ -4,7 +4,6 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { SendHorizontal } from "lucide-react"
-import { ExaResultItem, FullExaApiResponse } from "@/types/exa"
 
 interface ChatInputProps {
   onSearchSubmit: (query: string) => Promise<void>

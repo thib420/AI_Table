@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useMemo, useRef } from 'react';
-import { ExaResultItem } from "@/types/exa";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GripVertical, Plus, Check, PlusCircle, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
@@ -10,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { ColumnDef, ResultsTableProps, EnrichedExaResultItem } from './types';
+import { ResultsTableProps, EnrichedExaResultItem } from './types';
 import { stableInitialAllAvailableColumns } from './columnDefinitions';
 import { useDataEnrichment } from './useDataEnrichment';
 import { useColumnManagement } from './useColumnManagement';
@@ -114,7 +113,7 @@ export function ResultsTable({ results, isLoading }: ResultsTableProps) {
           className="max-w-sm mb-4 h-9"
         />
         <div className="text-center py-10">
-          <p className="text-muted-foreground">No results match your filter "{filterQuery}".</p>
+          <p className="text-muted-foreground">No results match your filter &quot;{filterQuery}&quot;.</p>
         </div>
       </div>
     );

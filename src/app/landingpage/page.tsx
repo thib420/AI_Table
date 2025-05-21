@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import Image from "next/image";
+// import Image from "next/image"; // Removed unused import
 // import DataTable from "@/components/DataTable"; // Will be replaced by ResultsTable
 import { ThemeToggleWrapper } from "@/components/theme-toggle-wrapper";
 import { ChatInput } from "@/components/ChatInput";
 import { ResultsTable } from "@/components/ResultsTable"; // We will create this component
-import { ExaResultItem, FullExaApiResponse } from "@/types/exa";
+import { ExaResultItem } from "@/types/exa"; // Removed unused FullExaApiResponse import
 
 export default function Dashboard() {
   const [results, setResults] = useState<ExaResultItem[]>([]);
@@ -22,8 +22,8 @@ export default function Dashboard() {
 
     try {
       const response = await fetch(`/api/exa?query=${encodeURIComponent(query)}`);
-      // Use 'any' for apiResponse initially to flexibly check its structure
-      const apiResponse: any = await response.json();
+      // Use a union type for apiResponse to flexibly check its structure
+      const apiResponse: { data?: { results?: ExaResultItem[] }, results?: ExaResultItem[], error?: string } | ExaResultItem[] = await response.json();
 
       if (!response.ok) {
         // If API returned an error status (4xx, 5xx)

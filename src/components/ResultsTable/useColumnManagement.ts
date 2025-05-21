@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { ColumnDef, EnrichedExaResultItem } from './types';
+// import { ColumnDef, EnrichedExaResultItem } from './types'; // Removed unused EnrichedExaResultItem
+import { ColumnDef } from './types'; // Keep ColumnDef
 import { stableInitialAllAvailableColumns } from './columnDefinitions';
 
 export function useColumnManagement(
