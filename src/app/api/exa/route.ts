@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     const options: ExaSearchOptions = {
       text: true,
       category: "linkedin profile",
-      numResults: 5,
+      numResults: 10,
       // highlights: true,
     };
 
