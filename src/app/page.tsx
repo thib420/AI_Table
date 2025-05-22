@@ -150,7 +150,6 @@ export default function AppPage() {
       isLoadingDelete={isLoadingDelete}
       handleSavedSearchItemClick={handleSavedSearchItemClick}
       handleRecentSearchItemClick={handleRecentSearchItemClick}
-      handleLoginWithAzure={handleLoginWithAzure}
       handleLogout={handleLogout}
       handleDeleteSavedSearch={handleDeleteSavedSearch}
       handleSave={handleSave}

@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
-import { Search, Plus, Trash2, Menu, Moon, Sun, User as UserIcon, LogOut, History, Bookmark, Settings, Send, ChevronDown, X, Sparkles, Check, ChevronsUpDown, ChevronUp } from 'lucide-react';
+import { Search, Plus, Trash2, Menu, Moon, Sun, LogOut, History, Bookmark, Settings, Send, ChevronDown, X, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,7 +52,7 @@ interface AppLayoutProps {
   isLoadingDelete: boolean;
   handleSavedSearchItemClick: (item: SavedSearchItem) => void;
   handleRecentSearchItemClick: (query: string) => void;
-  handleLoginWithAzure: () => void;
+
   handleLogout: () => void;
   handleDeleteSavedSearch: (id: string) => void;
   handleSave: () => void;
@@ -76,7 +76,6 @@ export function AppLayout({
   isLoadingDelete,
   handleSavedSearchItemClick,
   handleRecentSearchItemClick,
-  handleLoginWithAzure,
   handleLogout,
   handleDeleteSavedSearch,
   handleSave
@@ -493,8 +492,8 @@ export function AppLayout({
   const deleteSelectedRows = useCallback(() => {
     setSearchState(prev => {
       const indicesToDelete = Array.from(prev.selectedRows).sort((a, b) => b - a);
-      let newResults = [...prev.results];
-      let newEnrichedResults = [...prev.enrichedResults];
+      const newResults = [...prev.results];
+      const newEnrichedResults = [...prev.enrichedResults];
       
       // Remove rows in reverse order to maintain correct indices
       indicesToDelete.forEach(index => {
@@ -593,7 +592,7 @@ Return only this JSON format:
       
       // Apply the enhanced data to the results
       const enhancedResults = results.map((result, index) => {
-        const enhancement = enhancedData.find((item: any) => item.index === index);
+        const enhancement = enhancedData.find((item: { index: number; position: string; company: string }) => item.index === index);
         if (enhancement && enhancement.position && enhancement.company) {
           return {
             ...result,
@@ -723,7 +722,8 @@ Return only this JSON format:
       let newEnrichedResults = prev.enrichedResults;
       if (columnToRemove.type === 'ai-generated' && columnToRemove.accessorKey) {
         newEnrichedResults = prev.enrichedResults.map(result => {
-          const { [columnToRemove.accessorKey!]: removed, ...rest } = result;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { [columnToRemove.accessorKey!]: _, ...rest } = result;
           return rest as EnrichedExaResultItem;
         });
       }
@@ -1107,7 +1107,8 @@ Return only this JSON format:
                                           ...prev,
                                           columns: prev.columns.filter(col => col.id !== column.id),
                                           enrichedResults: prev.enrichedResults.map(result => {
-                                            const { [column.accessorKey || '']: removed, ...rest } = result;
+                                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                            const { [column.accessorKey || '']: _, ...rest } = result;
                                             return rest as EnrichedExaResultItem;
                                           })
                                         }));

@@ -58,7 +58,7 @@ export function ColumnSortIndicator({ columnId, currentSort, onSortChange }: Col
 export function sortData<T>(
   data: T[], 
   sort: ColumnSort | null, 
-  getValueFn: (item: T, columnId: string) => any
+  getValueFn: (item: T, columnId: string) => unknown
 ): T[] {
   if (!sort) return data;
 

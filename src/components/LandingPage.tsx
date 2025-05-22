@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, Sparkles, Users, Zap, Shield, ArrowRight, Check, Star, Globe, Database, Brain, Target } from 'lucide-react';
+import { Search, Sparkles, Shield, ArrowRight, Check, Globe, Database, Brain, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Search, X, Filter, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Filter, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -17,7 +17,7 @@ export interface ColumnFilter {
 interface ColumnFilterProps {
   columnId: string;
   columnHeader: string;
-  data: any[];
+  data: Record<string, unknown>[];
   accessorKey: string;
   currentFilter?: ColumnFilter;
   onFilterChange: (filter: ColumnFilter | null) => void;
@@ -41,8 +41,8 @@ export function ColumnFilterComponent({
   const uniqueValues = React.useMemo(() => {
     const values = data
       .map(item => item[accessorKey])
-      .filter(value => value && value !== 'N/A' && value.toString().trim() !== '')
-      .map(value => value.toString());
+      .filter(value => value && value !== 'N/A' && String(value).trim() !== '')
+      .map(value => String(value));
     return [...new Set(values)].sort();
   }, [data, accessorKey]);
 
