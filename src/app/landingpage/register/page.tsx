@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ThemeToggleWrapper } from "@/components/theme-toggle-wrapper";
-import { createSupabaseBrowserClient } from "@/lib/supabase/utils";
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -17,23 +16,6 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   
   const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
-
-  const handleMicrosoftSignUp = async () => {
-    setIsLoading(true);
-    setError('');
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        redirectTo: `${location.origin}/auth/callback`, // Ensure you have an auth callback route
-      },
-    });
-    if (error) {
-      setError(error.message);
-      setIsLoading(false);
-    }
-    // No explicit redirect here, Supabase handles it
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,28 +124,6 @@ export default function RegisterPage() {
               disabled={isLoading}
             >
               {isLoading ? 'Creating account...' : 'Create account'}
-            </Button>
-
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or sign up with
-                </span>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              className="w-full"
-              size="lg"
-              onClick={handleMicrosoftSignUp}
-              disabled={isLoading}
-            >
-              {/* You can add a Microsoft icon here */}
-              {isLoading ? 'Redirecting...' : 'Sign up with Microsoft'}
             </Button>
           </form>
           
