@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { AppLayout } from '@/components/AppLayout';
+import { LandingPage } from '@/components/LandingPage';
 import { useSearchHistory, SavedSearchItem } from '@/components/SearchHistoryManager';
 import { ExaResultItem } from '@/types/exa';
 
@@ -44,7 +45,8 @@ export default function AppPage() {
       const data = await fetchSavedSearches();
       setSavedSearches(data);
     } catch (err) {
-      console.error("Error in fetchSavedSearchesAndUpdate:", err);
+      console.error("Error fetching saved searches:", err);
+      setSavedSearches([]);
     }
   }, [user, fetchSavedSearches]);
 
@@ -129,6 +131,11 @@ export default function AppPage() {
     
     setIsLoadingDelete(false);
   };
+
+  // Show landing page if user is not authenticated
+  if (!authIsLoading && !user) {
+    return <LandingPage onGetStarted={handleLoginWithAzure} />;
+  }
 
   return (
     <AppLayout

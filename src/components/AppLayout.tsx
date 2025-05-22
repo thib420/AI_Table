@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
-import { Search, Plus, Trash2, Menu, Moon, Sun, User as UserIcon, LogOut, History, Bookmark, Settings, Send, ChevronDown, X, Sparkles, Check } from 'lucide-react';
+import { Search, Plus, Trash2, Menu, Moon, Sun, User as UserIcon, LogOut, History, Bookmark, Settings, Send, ChevronDown, X, Sparkles, Check, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,8 @@ import { Separator } from '@/components/ui/separator';
 import { SavedSearchItem, CompleteSearchState } from '@/components/SearchHistoryManager';
 import { ExaResultItem } from '@/types/exa';
 import { AIColumnGenerator, ColumnDef, EnrichedExaResultItem, AIColumnConfig } from '@/lib/ai-column-generator';
+import { ColumnFilterComponent, ColumnFilter } from '@/components/ColumnFilter';
+import { ColumnSortIndicator, ColumnSort, sortData } from '@/components/ColumnSort';
 import { useTheme } from 'next-themes';
 
 interface SearchState {
@@ -20,7 +22,11 @@ interface SearchState {
   isLoading: boolean;
   results: ExaResultItem[];
   enrichedResults: EnrichedExaResultItem[];
+  filteredResults: EnrichedExaResultItem[];
+  sortedResults: EnrichedExaResultItem[];
   columns: ColumnDef[];
+  columnFilters: ColumnFilter[];
+  columnSort: ColumnSort | null;
   error: string | null;
   aiProcessing: {
     [resultIndex: number]: {
@@ -28,6 +34,7 @@ interface SearchState {
     };
   };
   isAddingAIColumn: boolean;
+  isEnhancingWithAI: boolean;
   currentResultCount: number;
   isLoadingMore: boolean;
   selectedRows: Set<number>;
@@ -81,10 +88,15 @@ export function AppLayout({
     isLoading: false,
     results: [],
     enrichedResults: [],
+    filteredResults: [],
+    sortedResults: [],
     columns: defaultColumns,
+    columnFilters: [],
+    columnSort: null,
     error: null,
     aiProcessing: {},
     isAddingAIColumn: false,
+    isEnhancingWithAI: false,
     currentResultCount: 10,
     isLoadingMore: false,
     selectedRows: new Set()
@@ -117,18 +129,40 @@ export function AppLayout({
       // Handle different response formats
       const results = data.results || data.data?.results || [];
       
+      const enrichedData = results.map((item: ExaResultItem) => processLinkedInData(item));
+      
+      // Set initial state with basic data
       setSearchState(prev => ({
         ...prev,
         results,
-        enrichedResults: results.map((item: ExaResultItem) => processLinkedInData(item)),
-        columns: defaultColumns, // Reset to default columns for new searches
+        enrichedResults: enrichedData,
+        filteredResults: enrichedData,
+        sortedResults: enrichedData,
+        columns: defaultColumns,
+        columnFilters: [],
+        columnSort: null,
         isLoading: false,
-        aiProcessing: {}, // Reset AI processing state
+        aiProcessing: {},
         isAddingAIColumn: false,
         currentResultCount: numResults,
         isLoadingMore: false,
         selectedRows: new Set()
       }));
+
+      // Enhance data with Gemini AI in the background
+      setSearchState(prev => ({ ...prev, isEnhancingWithAI: true }));
+      enhanceWithGemini(enrichedData).then(enhancedResults => {
+        setSearchState(prev => ({
+          ...prev,
+          enrichedResults: enhancedResults,
+          filteredResults: enhancedResults,
+          sortedResults: enhancedResults,
+          isEnhancingWithAI: false
+        }));
+      }).catch(error => {
+        console.error('Failed to enhance with AI:', error);
+        setSearchState(prev => ({ ...prev, isEnhancingWithAI: false }));
+      });
 
       // Add to recent searches
       setRecentSearches([query, ...recentSearches.filter(s => s !== query)].slice(0, 10));
@@ -165,13 +199,32 @@ export function AppLayout({
 
       const results = data.results || data.data?.results || [];
       
+      const enrichedData = results.map((item: ExaResultItem) => processLinkedInData(item));
+      const filteredData = applyFilters(enrichedData, searchState.columnFilters);
+      const sortedData = sortData(filteredData, searchState.columnSort, (item, colId) => item[colId as keyof EnrichedExaResultItem]);
+      
       setSearchState(prev => ({
         ...prev,
         results,
-        enrichedResults: results.map((item: ExaResultItem) => processLinkedInData(item)),
+        enrichedResults: enrichedData,
+        filteredResults: filteredData,
+        sortedResults: sortedData,
         currentResultCount: newResultCount,
         isLoadingMore: false
       }));
+
+      // Enhance new data with Gemini AI
+      enhanceWithGemini(enrichedData).then(enhancedResults => {
+        const newFilteredData = applyFilters(enhancedResults, searchState.columnFilters);
+        const newSortedData = sortData(newFilteredData, searchState.columnSort, (item, colId) => item[colId as keyof EnrichedExaResultItem]);
+        
+        setSearchState(prev => ({
+          ...prev,
+          enrichedResults: enhancedResults,
+          filteredResults: newFilteredData,
+          sortedResults: newSortedData
+        }));
+      });
 
     } catch (error) {
       console.error('Load more error:', error);
@@ -303,25 +356,36 @@ export function AppLayout({
         isLoading: false,
         results: savedSearch.search_results_data || [],
         enrichedResults: savedSearch.enriched_results_data,
+        filteredResults: savedSearch.enriched_results_data,
+        sortedResults: savedSearch.enriched_results_data,
         columns: savedSearch.column_configuration,
+        columnFilters: [],
+        columnSort: null,
         error: null,
         aiProcessing: {},
         isAddingAIColumn: false,
+        isEnhancingWithAI: false,
         currentResultCount: savedSearch.search_results_data?.length || 0,
         isLoadingMore: false,
         selectedRows: new Set()
       });
     } else if (savedSearch.search_results_data) {
       // Load basic saved search
+      const enrichedData = savedSearch.search_results_data.map(item => processLinkedInData(item));
       setSearchState({
         query: savedSearch.query_text,
         isLoading: false,
         results: savedSearch.search_results_data,
-        enrichedResults: savedSearch.search_results_data.map(item => processLinkedInData(item)),
+        enrichedResults: enrichedData,
+        filteredResults: enrichedData,
+        sortedResults: enrichedData,
         columns: defaultColumns,
+        columnFilters: [],
+        columnSort: null,
         error: null,
         aiProcessing: {},
         isAddingAIColumn: false,
+        isEnhancingWithAI: false,
         currentResultCount: savedSearch.search_results_data.length,
         isLoadingMore: false,
         selectedRows: new Set()
@@ -372,56 +436,22 @@ export function AppLayout({
     };
   }, [searchState, performSearch, loadSavedSearch]);
 
-  if (authIsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20">
-        <Card className="w-full max-w-md shadow-lg">
-          <CardHeader className="text-center space-y-2">
-            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-              <Search className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle className="text-2xl font-bold">Welcome to AI Table</CardTitle>
-            <CardDescription className="text-base">
-              AI-powered search and analysis tool for professional profiles
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={handleLoginWithAzure} className="w-full" size="lg">
-              <UserIcon className="mr-2 h-4 w-4" />
-              Login with Azure
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const getUserInitials = (user: User) => {
+  // Helper functions - defined before any conditional returns to maintain hook order
+  const getUserInitials = useCallback((user: User) => {
     const email = user.email || '';
     const name = user.user_metadata?.full_name || user.user_metadata?.name || '';
     if (name) {
       return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
     }
     return email.slice(0, 2).toUpperCase();
-  };
+  }, []);
 
-  const getUserDisplayName = (user: User) => {
+  const getUserDisplayName = useCallback((user: User) => {
     return user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'User';
-  };
+  }, []);
 
   // Function to generate a profile picture URL using a service like UI Avatars
-  const generateProfilePicture = (authorName: string) => {
+  const generateProfilePicture = useCallback((authorName: string) => {
     if (!authorName || authorName === 'N/A') return null;
     
     // Use UI Avatars service to generate a nice profile picture
@@ -430,12 +460,12 @@ export function AppLayout({
     const backgroundColor = colors[colorIndex];
     
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&size=64&background=${backgroundColor}&color=fff&bold=true&format=png`;
-  };
+  }, []);
 
   // Helper function to check if a cell is being processed
-  const isCellProcessing = (resultIndex: number, columnId: string): boolean => {
+  const isCellProcessing = useCallback((resultIndex: number, columnId: string): boolean => {
     return searchState.aiProcessing[resultIndex]?.[columnId] || false;
-  };
+  }, [searchState.aiProcessing]);
 
   // Row selection functions
   const toggleRowSelection = useCallback((index: number) => {
@@ -452,10 +482,10 @@ export function AppLayout({
 
   const toggleAllRows = useCallback(() => {
     setSearchState(prev => {
-      const allSelected = prev.selectedRows.size === prev.enrichedResults.length;
+      const allSelected = prev.selectedRows.size === prev.sortedResults.length;
       const newSelectedRows = allSelected 
         ? new Set<number>() 
-        : new Set(prev.enrichedResults.map((_, index) => index));
+        : new Set(prev.sortedResults.map((_, index) => index));
       return { ...prev, selectedRows: newSelectedRows };
     });
   }, []);
@@ -481,60 +511,272 @@ export function AppLayout({
     });
   }, []);
 
-  // Function to extract clean position and company from LinkedIn title
-  const processLinkedInData = (result: ExaResultItem): EnrichedExaResultItem => {
-    const title = result.title || '';
-    
-    // Extract position (everything before " at " or " bei " or " - ")
-    let position = title;
-    let company = 'N/A';
-    
-    // Common patterns in LinkedIn titles
-    const patterns = [
-      / at (.+?)(?:\s*\||\s*$)/i,  // "Position at Company | ..."
-      / bei (.+?)(?:\s*\||\s*$)/i, // "Position bei Company | ..." (German)
-      / - (.+?)(?:\s*\||\s*$)/i,   // "Position - Company | ..."
-      / @ (.+?)(?:\s*\||\s*$)/i,   // "Position @ Company | ..."
-    ];
-    
-    for (const pattern of patterns) {
-      const match = title.match(pattern);
-      if (match) {
-        // Extract position (everything before the pattern)
-        position = title.substring(0, match.index).trim();
-        // Extract company
-        company = match[1].trim();
-        break;
-      }
-    }
-    
-    // Clean up position - remove common prefixes/suffixes
-    position = position
-      .replace(/^(.*?)\s*-\s*/, '') // Remove "Name - " prefix
-      .replace(/\s*-\s*.*$/, '')    // Remove " - ..." suffix
-      .trim();
-    
-    // If no pattern matched, try to extract from author name
-    if (company === 'N/A' && result.author) {
-      const authorPattern = new RegExp(`^${result.author}\\s*-\\s*(.+?)\\s*(?:at|bei|@)\\s*(.+?)(?:\\s*\\||$)`, 'i');
-      const authorMatch = title.match(authorPattern);
-      if (authorMatch) {
-        position = authorMatch[1].trim();
-        company = authorMatch[2].trim();
-      }
-    }
-    
-    // Fallback: if position is still the full title, try to clean it
-    if (position === title && result.author) {
-      position = title.replace(new RegExp(`^${result.author}\\s*-\\s*`, 'i'), '').trim();
-    }
-    
+  // Function to process LinkedIn data - now just returns the original data
+  // The AI enhancement will be done separately via Gemini
+  const processLinkedInData = useCallback((result: ExaResultItem): EnrichedExaResultItem => {
     return {
       ...result,
-      cleanPosition: position,
-      extractedCompany: company
+      cleanPosition: result.title || 'N/A', // Use original title for now
+      extractedCompany: 'N/A' // Will be enhanced by AI
     };
-  };
+  }, []);
+
+  // Function to enhance position and company data using Gemini AI
+  const enhanceWithGemini = useCallback(async (results: EnrichedExaResultItem[]): Promise<EnrichedExaResultItem[]> => {
+    try {
+      // Prepare data for Gemini analysis
+      const dataForAnalysis = results.map((item, index) => ({
+        index,
+        author: item.author,
+        title: item.title,
+        url: item.url
+      }));
+
+      const prompt = `You are an expert at analyzing LinkedIn profile data. Extract clean, professional position titles and company names from the provided LinkedIn profiles.
+
+For each profile, extract:
+1. Position: A clean, professional job title (e.g., "Software Engineer", "Marketing Director", "Sales Manager")
+2. Company: The company name where the person works
+
+Rules:
+- Keep position titles concise and professional
+- Remove redundant words like "Assistante de", "Assistant", etc. when they're not the core role
+- For French titles like "Assistante de direction", convert to "Executive Assistant"
+- Extract actual company names from the current job info or experiences
+- If you can't determine a clear position or company, use "N/A"
+- Return ONLY valid JSON array, no markdown formatting, no explanations
+
+Input data:
+${JSON.stringify(dataForAnalysis, null, 2)}
+
+Return only this JSON format:
+[{"index":0,"position":"Job Title","company":"Company Name"},{"index":1,"position":"Job Title","company":"Company Name"}]`;
+
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get Gemini response');
+      }
+
+      const { text } = await response.json();
+      
+      // Clean the response text - remove markdown code blocks if present
+      let cleanText = text.trim();
+      if (cleanText.startsWith('```json')) {
+        cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (cleanText.startsWith('```')) {
+        cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      // Parse the JSON response from Gemini
+      let enhancedData;
+      try {
+        enhancedData = JSON.parse(cleanText);
+        console.log('Successfully parsed Gemini response:', enhancedData);
+      } catch (parseError) {
+        console.error('Failed to parse Gemini response:', cleanText);
+        console.error('Parse error:', parseError);
+        throw new Error('Invalid JSON response from Gemini');
+      }
+      
+      // Validate the response structure
+      if (!Array.isArray(enhancedData)) {
+        console.error('Gemini response is not an array:', enhancedData);
+        throw new Error('Invalid response format from Gemini');
+      }
+      
+      // Apply the enhanced data to the results
+      const enhancedResults = results.map((result, index) => {
+        const enhancement = enhancedData.find((item: any) => item.index === index);
+        if (enhancement && enhancement.position && enhancement.company) {
+          return {
+            ...result,
+            cleanPosition: enhancement.position,
+            extractedCompany: enhancement.company
+          };
+        }
+        return {
+          ...result,
+          cleanPosition: result.title || 'N/A',
+          extractedCompany: 'N/A'
+        };
+      });
+
+      console.log('Enhanced results:', enhancedResults);
+      return enhancedResults;
+    } catch (error) {
+      console.error('Error enhancing data with Gemini:', error);
+      // Return original data if enhancement fails
+      return results;
+    }
+  }, []);
+
+  // Column filtering functions
+  const applyFilters = useCallback((data: EnrichedExaResultItem[], filters: ColumnFilter[]): EnrichedExaResultItem[] => {
+    if (filters.length === 0) return data;
+
+    return data.filter(item => {
+      return filters.every(filter => {
+        const value = item[filter.columnId as keyof EnrichedExaResultItem];
+        const stringValue = value ? value.toString().toLowerCase() : '';
+        
+        if (Array.isArray(filter.value)) {
+          // Select filter type
+          return filter.value.some(filterVal => 
+            stringValue.includes(filterVal.toLowerCase())
+          );
+        } else {
+          const filterValue = filter.value.toLowerCase();
+          
+          switch (filter.type) {
+            case 'contains':
+              return stringValue.includes(filterValue);
+            case 'text':
+              return stringValue === filterValue;
+            case 'startsWith':
+              return stringValue.startsWith(filterValue);
+            case 'endsWith':
+              return stringValue.endsWith(filterValue);
+            default:
+              return stringValue.includes(filterValue);
+          }
+        }
+      });
+    });
+  }, []);
+
+  const handleColumnFilterChange = useCallback((columnId: string, filter: ColumnFilter | null) => {
+    setSearchState(prev => {
+      const newFilters = filter 
+        ? [...prev.columnFilters.filter(f => f.columnId !== columnId), filter]
+        : prev.columnFilters.filter(f => f.columnId !== columnId);
+      
+      const filteredResults = applyFilters(prev.enrichedResults, newFilters);
+      const sortedResults = sortData(filteredResults, prev.columnSort, (item, colId) => item[colId as keyof EnrichedExaResultItem]);
+      
+      return {
+        ...prev,
+        columnFilters: newFilters,
+        filteredResults,
+        sortedResults,
+        selectedRows: new Set() // Clear selection when filters change
+      };
+    });
+  }, [applyFilters]);
+
+  const clearAllFilters = useCallback(() => {
+    setSearchState(prev => {
+      const sortedResults = sortData(prev.enrichedResults, prev.columnSort, (item, colId) => item[colId as keyof EnrichedExaResultItem]);
+      return {
+        ...prev,
+        columnFilters: [],
+        filteredResults: prev.enrichedResults,
+        sortedResults,
+        selectedRows: new Set()
+      };
+    });
+  }, []);
+
+  // Column sort handler
+  const handleColumnSortChange = useCallback((sort: ColumnSort | null) => {
+    setSearchState(prev => {
+      const sortedResults = sortData(prev.filteredResults, sort, (item, colId) => item[colId as keyof EnrichedExaResultItem]);
+      return {
+        ...prev,
+        columnSort: sort,
+        sortedResults,
+        selectedRows: new Set() // Clear selection when sort changes
+      };
+    });
+  }, []);
+
+  // Remove column handler
+  const removeColumn = useCallback((columnId: string) => {
+    setSearchState(prev => {
+      // Don't allow removing if it would leave less than 1 column
+      if (prev.columns.length <= 1) {
+        return prev;
+      }
+
+      // Find the column to remove
+      const columnToRemove = prev.columns.find(col => col.id === columnId);
+      if (!columnToRemove) {
+        return prev;
+      }
+
+      // Remove the column from the columns array
+      const newColumns = prev.columns.filter(col => col.id !== columnId);
+
+      // Remove any filters for this column
+      const newColumnFilters = prev.columnFilters.filter(filter => filter.columnId !== (columnToRemove.accessorKey || columnId));
+
+      // Clear sort if it was on the removed column
+      const newColumnSort = prev.columnSort?.columnId === (columnToRemove.accessorKey || columnId) ? null : prev.columnSort;
+
+      // Remove the column data from enriched results if it's an AI-generated column
+      let newEnrichedResults = prev.enrichedResults;
+      if (columnToRemove.type === 'ai-generated' && columnToRemove.accessorKey) {
+        newEnrichedResults = prev.enrichedResults.map(result => {
+          const { [columnToRemove.accessorKey!]: removed, ...rest } = result;
+          return rest as EnrichedExaResultItem;
+        });
+      }
+
+      // Reapply filters and sorting
+      const filteredResults = applyFilters(newEnrichedResults, newColumnFilters);
+      const sortedResults = sortData(filteredResults, newColumnSort, (item, colId) => item[colId as keyof EnrichedExaResultItem]);
+
+      return {
+        ...prev,
+        columns: newColumns,
+        columnFilters: newColumnFilters,
+        columnSort: newColumnSort,
+        enrichedResults: newEnrichedResults,
+        filteredResults,
+        sortedResults,
+        selectedRows: new Set() // Clear selection when columns change
+      };
+    });
+  }, [applyFilters]);
+
+  // Update filtered and sorted results when enriched results change
+  useEffect(() => {
+    setSearchState(prev => {
+      const filteredResults = applyFilters(prev.enrichedResults, prev.columnFilters);
+      const sortedResults = sortData(filteredResults, prev.columnSort, (item, colId) => item[colId as keyof EnrichedExaResultItem]);
+      return {
+        ...prev,
+        filteredResults,
+        sortedResults
+      };
+    });
+  }, [searchState.enrichedResults, applyFilters]);
+
+  // Early returns after all hooks are defined
+  if (authIsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // This component now only handles authenticated users
+  // Landing page is handled in the main page component
+  if (!user) {
+    return null;
+  }
+
+
 
   return (
     <div className="h-screen bg-background flex flex-col">
@@ -712,7 +954,7 @@ export function AppLayout({
         {/* Main Content */}
         <main className="flex-1 overflow-hidden min-h-0">
           <div className="h-full flex flex-col">
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0 pb-8">
 
             {/* Error Display */}
             {searchState.error && (
@@ -733,10 +975,41 @@ export function AppLayout({
                   <div className="space-y-1">
                     <CardTitle className="text-xl">Search Results</CardTitle>
                     <CardDescription>
-                      Found <span className="font-medium text-foreground">{searchState.results.length}</span> results for <span className="font-medium text-foreground">&quot;{searchState.query}&quot;</span>
+                      {searchState.columnFilters.length > 0 || searchState.columnSort ? (
+                        <>
+                          Showing <span className="font-medium text-foreground">{searchState.sortedResults.length}</span> of <span className="font-medium text-foreground">{searchState.results.length}</span> results for <span className="font-medium text-foreground">&quot;{searchState.query}&quot;</span>
+                          {searchState.columnFilters.length > 0 && (
+                            <span className="text-blue-600 dark:text-blue-400"> ({searchState.columnFilters.length} filter{searchState.columnFilters.length > 1 ? 's' : ''} applied)</span>
+                          )}
+                          {searchState.columnSort && (
+                            <span className="text-green-600 dark:text-green-400"> (sorted by {searchState.columns.find(c => (c.accessorKey || c.id) === searchState.columnSort?.columnId)?.header} {searchState.columnSort.direction === 'asc' ? '↑' : '↓'})</span>
+                          )}
+                          {searchState.isEnhancingWithAI && (
+                            <span className="text-purple-600 dark:text-purple-400"> (✨ AI enhancing position & company data...)</span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          Found <span className="font-medium text-foreground">{searchState.results.length}</span> results for <span className="font-medium text-foreground">&quot;{searchState.query}&quot;</span>
+                          {searchState.isEnhancingWithAI && (
+                            <span className="text-purple-600 dark:text-purple-400"> (✨ AI enhancing position & company data...)</span>
+                          )}
+                        </>
+                      )}
                     </CardDescription>
                   </div>
                   <div className="flex items-center space-x-2">
+                    {searchState.columnFilters.length > 0 && (
+                      <Button
+                        onClick={clearAllFilters}
+                        variant="outline"
+                        size="sm"
+                        className="mr-2"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Clear Filters ({searchState.columnFilters.length})
+                      </Button>
+                    )}
                     {searchState.selectedRows.size > 0 && (
                       <Button
                         onClick={deleteSelectedRows}
@@ -868,31 +1141,68 @@ export function AppLayout({
                               <div className="flex items-center justify-center">
                                 <input
                                   type="checkbox"
-                                  checked={searchState.selectedRows.size === searchState.enrichedResults.length && searchState.enrichedResults.length > 0}
+                                  checked={searchState.selectedRows.size === searchState.sortedResults.length && searchState.sortedResults.length > 0}
                                   onChange={toggleAllRows}
                                   className="rounded border-gray-300 text-primary focus:ring-primary"
                                 />
                               </div>
                             </th>
                             {searchState.columns.map((column) => (
-                              <th key={column.id} className="p-4 text-left font-medium text-muted-foreground">
-                                <div className="flex items-center space-x-2">
-                                  <span>{column.header}</span>
-                                  {column.type === 'ai-generated' && (
-                                    <Badge variant="secondary" className="text-xs bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700">
-                                      <div className="flex items-center space-x-1">
-                                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></div>
-                                        <span>AI</span>
-                                      </div>
-                                    </Badge>
-                                  )}
+                              <th key={column.id} className="p-4 text-left font-medium text-muted-foreground group">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="cursor-pointer hover:text-foreground transition-colors" onClick={() => handleColumnSortChange(
+                                      searchState.columnSort?.columnId === (column.accessorKey || column.id) && searchState.columnSort?.direction === 'asc'
+                                        ? { columnId: column.accessorKey || column.id, direction: 'desc' }
+                                        : searchState.columnSort?.columnId === (column.accessorKey || column.id) && searchState.columnSort?.direction === 'desc'
+                                        ? null
+                                        : { columnId: column.accessorKey || column.id, direction: 'asc' }
+                                    )}>
+                                      {column.header}
+                                    </span>
+                                    <ColumnSortIndicator
+                                      columnId={column.accessorKey || column.id}
+                                      currentSort={searchState.columnSort || undefined}
+                                      onSortChange={handleColumnSortChange}
+                                    />
+                                    {column.type === 'ai-generated' && (
+                                      <Badge variant="secondary" className="text-xs bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700">
+                                        <div className="flex items-center space-x-1">
+                                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></div>
+                                          <span>AI</span>
+                                        </div>
+                                      </Badge>
+                                    )}
+                                    {/* Remove Column Button - only show for non-default columns or when there are more than 4 columns */}
+                                    {(column.type === 'ai-generated' || searchState.columns.length > 4) && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeColumn(column.id)}
+                                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                        title={`Remove ${column.header} column`}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <ColumnFilterComponent
+                                      columnId={column.accessorKey || column.id}
+                                      columnHeader={column.header}
+                                      data={searchState.enrichedResults}
+                                      accessorKey={column.accessorKey || column.id}
+                                      currentFilter={searchState.columnFilters.find(f => f.columnId === (column.accessorKey || column.id))}
+                                      onFilterChange={(filter) => handleColumnFilterChange(column.accessorKey || column.id, filter)}
+                                    />
+                                  </div>
                                 </div>
                               </th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {searchState.enrichedResults.map((result, index) => (
+                          {searchState.sortedResults.map((result, index) => (
                             <tr key={result.id || index} className={`border-b hover:bg-muted/30 transition-colors ${searchState.selectedRows.has(index) ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}>
                               <td className="p-4 w-12">
                                 <div className="flex items-center justify-center">
@@ -963,7 +1273,7 @@ export function AppLayout({
                 </CardContent>
                 {/* Load More Results Button */}
                 {searchState.results.length > 0 && searchState.currentResultCount < 100 && (
-                  <div className="px-6 pb-6">
+                  <div className="px-6 pb-20">
                     <Button
                       onClick={loadMoreResults}
                       disabled={searchState.isLoadingMore}
@@ -1025,7 +1335,7 @@ export function AppLayout({
             </div>
 
             {/* Search Input at Bottom - ChatGPT Style */}
-            <div className="bg-background p-4">
+            <div className="bg-background border-t p-4 flex-shrink-0">
               <div className="max-w-4xl mx-auto">
                 <div className="flex space-x-3 items-start">
                   <div className="relative flex-1">

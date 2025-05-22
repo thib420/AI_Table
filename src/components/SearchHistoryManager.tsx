@@ -34,7 +34,6 @@ export const useSearchHistory = () => {
 
   const fetchSavedSearches = useCallback(async (): Promise<SavedSearchItem[]> => {
     if (!user) {
-      console.log("No user, returning empty array");
       return [];
     }
 
