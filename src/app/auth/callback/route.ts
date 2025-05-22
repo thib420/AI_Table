@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
           async set(name: string, value: string, options: CookieOptions) {
             (await cookieStore).set(name, value, options);
           },
-          async remove(name: string, options: CookieOptions) {
+          async remove(name: string) {
             (await cookieStore).delete(name);
           },
         },
