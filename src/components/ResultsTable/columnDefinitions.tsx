@@ -1,1 +1,0 @@
-export { stableInitialAllAvailableColumns } from '@/config/tableLayout'; 

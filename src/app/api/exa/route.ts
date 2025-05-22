@@ -24,6 +24,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("query");
+    const numResults = searchParams.get("numResults");
 
     if (!query) {
       return NextResponse.json(
@@ -32,12 +33,21 @@ export async function GET(request: Request) {
       );
     }
 
+    // Parse numResults with validation
+    let resultCount = 10; // default
+    if (numResults) {
+      const parsed = parseInt(numResults, 10);
+      if (!isNaN(parsed) && parsed > 0 && parsed <= 100) {
+        resultCount = parsed;
+      }
+    }
+
     const exa = new Exa(apiKey);
 
     const options: ExaSearchOptions = {
       text: true,
       category: "linkedin profile",
-      numResults: 10,
+      numResults: resultCount,
       // highlights: true,
     };
 
