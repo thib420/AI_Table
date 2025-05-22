@@ -4,6 +4,15 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ThemeToggleWrapper } from "@/components/theme-toggle-wrapper";
+// import { 
+//   DropdownMenu,
+//   DropdownMenuContent,
+//   DropdownMenuItem,
+//   DropdownMenuLabel,
+//   DropdownMenuSeparator,
+//   DropdownMenuTrigger
+// } from "@/components/ui/dropdown-menu";
+// import { UserIcon } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -48,12 +57,36 @@ export default function LandingPage() {
                 className="text-sm"
                 asChild
               >
-                <Link href="/landingpage">Continue as Guest</Link>
+                <Link href="/table">Continue as Guest</Link>
               </Button>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* User dropdown menu in bottom left - REMOVED */}
+      {/* <div className="absolute bottom-4 left-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant=\"ghost\" size=\"icon\">
+              <UserIcon className=\"h-5 w-5\" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align=\"start\">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href=\"/landingpage/login\">Login</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href=\"/landingpage/register\">Register</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href=\"/landingpage\">Continue as Guest</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div> */}
       
       {/* Footer */}
       <footer className="py-6 text-center text-sm text-muted-foreground">
