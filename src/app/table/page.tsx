@@ -35,6 +35,12 @@ export default function TablePage() {
     }
   }, [user, authIsLoading, router]);
 
+  useEffect(() => {
+    if (session) {
+      console.log("User session:", session);
+    }
+  }, [session]);
+
   const handleSearchSubmit = async (query: string) => {
     setIsSearchLoading(true);
     setError(null);

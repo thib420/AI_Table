@@ -3,12 +3,12 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation'; // Removed unused import
 import { LogInIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const router = useRouter();
+  // const router = useRouter(); // Removed unused variable
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
