@@ -12,6 +12,7 @@ import { EmailCampaignPage } from '@/modules/campaigns';
 import { LandingPage } from '@/modules/landing';
 import { useSearchHistory, SavedSearchItem } from '@/modules/search/components/SearchHistoryManager';
 import { ExaResultItem } from '@/shared/types/exa';
+import { useToast } from '@/components/ui/toast';
 
 // Define the SearchContainerApi type
 interface SearchContainerApi {
@@ -33,6 +34,7 @@ type BusinessModule = 'ai-table' | 'mailbox' | 'crm' | 'email-campaign';
 
 export default function AppPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const { 
     user, 
     session, 
@@ -51,13 +53,17 @@ export default function AppPage() {
   const [isLoadingDelete, setIsLoadingDelete] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
-  // Fetch saved searches when user changes
+  // Fetch saved searches from database or localStorage
   const fetchSavedSearchesAndUpdate = useCallback(async () => {
-    if (!user) {
-      setSavedSearches([]);
-      return;
-    }
     try {
+      if (!user) {
+        // Load from localStorage for development mode
+        const localSearches = JSON.parse(localStorage.getItem('ai_table_saved_searches') || '[]');
+        setSavedSearches(localSearches);
+        return;
+      }
+      
+      // Load from database for authenticated users
       const data = await fetchSavedSearches();
       setSavedSearches(data);
     } catch (err) {
@@ -67,11 +73,8 @@ export default function AppPage() {
   }, [user, fetchSavedSearches]);
 
   useEffect(() => {
-    if (user) {
-      fetchSavedSearchesAndUpdate();
-    } else {
-      setSavedSearches([]);
-    }
+    // Always fetch saved searches (from DB or localStorage)
+    fetchSavedSearchesAndUpdate();
   }, [user, fetchSavedSearchesAndUpdate]);
 
   useEffect(() => {
@@ -127,34 +130,88 @@ export default function AppPage() {
     setCurrentModule('ai-table');
   };
 
-  // Save function using the window API for backward compatibility
+  // Save function with improved error handling and development support
   const handleSave = async () => {
-    if (!user || !currentPrompt.trim()) return;
+    if (!currentPrompt.trim()) {
+      addToast("No search query to save", "warning");
+      return;
+    }
     
     if (!window.__searchContainerApi) {
       console.error("SearchContainer API not available");
+      addToast("Unable to save: Search API not available", "error");
       return;
     }
 
     // Get complete search state from the AppLayout component
     const completeState = window.__searchContainerApi.getCompleteSearchState();
     
-    if (completeState) {
+    if (!completeState) {
+      addToast("No search results to save. Please perform a search first.", "warning");
+      return;
+    }
+
+    try {
+      addToast("Saving search...", "info", 1000);
+      
+      // For development mode, save to localStorage if no user
+      if (!user) {
+        const savedSearches = JSON.parse(localStorage.getItem('ai_table_saved_searches') || '[]');
+        const newSearch = {
+          id: `local_${Date.now()}`,
+          query_text: completeState.query,
+          saved_at: new Date().toISOString(),
+          search_results_data: completeState.originalResults,
+          enriched_results_data: completeState.enrichedResults,
+          column_configuration: completeState.columnConfiguration,
+          user_id: 'development_user'
+        };
+        
+        savedSearches.unshift(newSearch);
+        // Keep only last 10 searches in localStorage
+        localStorage.setItem('ai_table_saved_searches', JSON.stringify(savedSearches.slice(0, 10)));
+        setSavedSearches(savedSearches.slice(0, 10));
+        
+        addToast(`Search "${completeState.query}" saved successfully!`, "success");
+        return;
+      }
+
+      // For authenticated users, save to database
       const success = await saveCompleteSearch(completeState);
       if (success) {
-        fetchSavedSearchesAndUpdate();
+        await fetchSavedSearchesAndUpdate();
+        addToast(`Search "${completeState.query}" saved successfully!`, "success");
+      } else {
+        addToast("Failed to save search. Please try again.", "error");
       }
+    } catch (error) {
+      console.error("Error saving search:", error);
+      addToast("Error saving search. Please try again.", "error");
     }
   };
 
   const handleDeleteSavedSearch = async (id: string) => {
-    if (!user) return;
     setIsLoadingDelete(true);
     
-    const success = await deleteSavedSearch(id);
-    
-    if (success) {
-      setSavedSearches(prev => prev.filter(s => s.id !== id));
+    try {
+      if (!user) {
+        // Delete from localStorage for development mode
+        const savedSearches = JSON.parse(localStorage.getItem('ai_table_saved_searches') || '[]');
+        const updatedSearches = savedSearches.filter((s: SavedSearchItem) => s.id !== id);
+        localStorage.setItem('ai_table_saved_searches', JSON.stringify(updatedSearches));
+        setSavedSearches(updatedSearches);
+        setIsLoadingDelete(false);
+        return;
+      }
+      
+      // Delete from database for authenticated users
+      const success = await deleteSavedSearch(id);
+      
+      if (success) {
+        setSavedSearches(prev => prev.filter(s => s.id !== id));
+      }
+    } catch (error) {
+      console.error("Error deleting saved search:", error);
     }
     
     setIsLoadingDelete(false);

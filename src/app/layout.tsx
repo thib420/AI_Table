@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/common/theme-provider";
+import { ToastProvider } from "@/components/ui/toast";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
 import { MicrosoftAuthProvider } from "@/modules/mailbox/services/MicrosoftAuthContext";
@@ -42,7 +43,9 @@ export default function RootLayout({
                 enableSystem
                 disableTransitionOnChange
               >
-                {children}
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
               </ThemeProvider>
             </UnifiedAuthProvider>
           </MicrosoftAuthProvider>

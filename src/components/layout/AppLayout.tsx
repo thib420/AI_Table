@@ -17,6 +17,7 @@ import { ResultsTable } from '@/modules/search/components/ResultsTable';
 import { ColumnFilterComponent, ColumnFilter } from '@/components/common/ColumnFilter';
 import { ColumnSortIndicator, ColumnSort, sortData } from '@/components/common/ColumnSort';
 import { useTheme } from 'next-themes';
+import { useToast } from '@/components/ui/toast';
 
 interface SearchState {
   query: string;
@@ -82,6 +83,7 @@ export function AppLayout({
   handleSave
 }: AppLayoutProps) {
   const { theme, setTheme } = useTheme();
+  const { addToast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchState, setSearchState] = useState<SearchState>({
     query: '',
@@ -168,6 +170,17 @@ export function AppLayout({
       setRecentSearches([query, ...recentSearches.filter(s => s !== query)].slice(0, 10));
       setCurrentPrompt(query);
 
+      // Show save prompt after successful search
+      if (results.length > 0) {
+        setTimeout(() => {
+          addToast(
+            `Search completed with ${results.length} results! Click the Save button to save this search.`,
+            "success",
+            5000
+          );
+        }, 1500); // Delay to let user see the results first
+      }
+
     } catch (error) {
       console.error('Search error:', error);
       setSearchState(prev => ({
@@ -180,7 +193,7 @@ export function AppLayout({
         selectedRows: new Set()
       }));
     }
-  }, [recentSearches, setRecentSearches, setCurrentPrompt]);
+  }, [recentSearches, setRecentSearches, setCurrentPrompt, handleSave, addToast]);
 
   const loadMoreResults = useCallback(async () => {
     if (!searchState.query || searchState.isLoadingMore) return;
@@ -1054,9 +1067,14 @@ Return only this JSON format:
                       </DropdownMenuContent>
                     </DropdownMenu>
                     {searchState.results.length > 0 && (
-                      <Button onClick={handleSave} variant="default" size="sm">
+                      <Button 
+                        onClick={handleSave} 
+                        variant="default" 
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
                         <Bookmark className="h-4 w-4 mr-2" />
-                        Save Search
+                        Save Search ({searchState.results.length} results)
                       </Button>
                     )}
                   </div>
