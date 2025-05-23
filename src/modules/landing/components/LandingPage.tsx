@@ -5,7 +5,7 @@ import { Search, Sparkles, Shield, ArrowRight, Check, Globe, Database, Brain, Ta
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DemoModal } from '@/components/DemoModal';
+import { DemoModal } from '@/components/common/DemoModal';
 
 interface LandingPageProps {
   onGetStarted: () => void;

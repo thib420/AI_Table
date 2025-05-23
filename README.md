@@ -1,16 +1,38 @@
 # AI Table - AI-Powered Professional Search & Analysis
 
-An intelligent search application that finds LinkedIn profiles and other professional content using AI-powered enhancement and analysis.
+An intelligent search application that finds LinkedIn profiles and other professional content using AI-powered enhancement and analysis, with integrated Microsoft Outlook email management.
 
 ## ✨ Features
 
 - 🔍 **Smart Search**: Search for LinkedIn profiles and professional content using the Exa API
 - 🤖 **AI Enhancement**: Enrich search results with custom AI-generated columns using Google Gemini
+- 📧 **Microsoft Outlook Integration**: Connect your Microsoft account for real email access and management
+- 👥 **Customer 360 View**: Unified customer interface with complete interaction history
 - 💾 **Search History**: Save and manage your searches with full state preservation
-- 🔐 **Secure Authentication**: Azure OAuth integration via Supabase
+- 🔐 **Secure Authentication**: Supabase + Microsoft Graph OAuth integration
 - 🌓 **Dark/Light Mode**: Built-in theme switching
 - 📱 **Responsive Design**: Works perfectly on desktop and mobile
 - ⚡ **Fast Performance**: Optimized with Next.js 15 and React 19
+
+## 📧 Microsoft Integration
+
+### **Real Email Access**
+- Connect your Microsoft/Outlook account
+- Read, mark as read, and star emails
+- Real-time synchronization with Office 365
+- Seamless Customer 360 integration
+
+### **Setup**
+1. Follow [MICROSOFT_SETUP.md](./MICROSOFT_SETUP.md) for Azure app registration
+2. Add your client ID to environment variables:
+   ```env
+   NEXT_PUBLIC_MICROSOFT_CLIENT_ID=your_microsoft_client_id_here
+   ```
+3. Connect account in mailbox interface
+4. Grant permissions: User.Read, Mail.Read, Mail.ReadWrite
+
+### **Demo Mode**
+Works without Microsoft connection using sample data.
 
 ## 🚀 Quick Start
 
@@ -41,7 +63,10 @@ An intelligent search application that finds LinkedIn profiles and other profess
    ```env
    # Supabase Configuration
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+   # Microsoft Graph Integration (Optional)
+   NEXT_PUBLIC_MICROSOFT_CLIENT_ID=your_microsoft_client_id_here
 
    # API Keys
    EXA_API_KEY=your_exa_api_key_here

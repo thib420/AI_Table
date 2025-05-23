@@ -10,11 +10,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { SavedSearchItem, CompleteSearchState } from '@/components/SearchHistoryManager';
-import { ExaResultItem } from '@/types/exa';
-import { AIColumnGenerator, ColumnDef, EnrichedExaResultItem, AIColumnConfig } from '@/lib/ai-column-generator';
-import { ColumnFilterComponent, ColumnFilter } from '@/components/ColumnFilter';
-import { ColumnSortIndicator, ColumnSort, sortData } from '@/components/ColumnSort';
+import { SavedSearchItem, CompleteSearchState } from '@/modules/search/components/SearchHistoryManager';
+import { ExaResultItem } from '@/shared/types/exa';
+import { AIColumnGenerator, ColumnDef, EnrichedExaResultItem, AIColumnConfig } from '@/modules/search/services/ai-column-generator';
+import { ColumnFilterComponent, ColumnFilter } from '@/components/common/ColumnFilter';
+import { ColumnSortIndicator, ColumnSort, sortData } from '@/components/common/ColumnSort';
 import { useTheme } from 'next-themes';
 
 interface SearchState {
@@ -157,7 +157,7 @@ export function AppLayout({
           filteredResults: enhancedResults,
           sortedResults: enhancedResults,
           isEnhancingWithAI: false
-        }));
+      }));
       }).catch(error => {
         console.error('Failed to enhance with AI:', error);
         setSearchState(prev => ({ ...prev, isEnhancingWithAI: false }));
@@ -323,10 +323,10 @@ export function AppLayout({
       }
       
       // Mark AI column addition as complete
-      setSearchState(prev => ({
-        ...prev,
+        setSearchState(prev => ({
+          ...prev,
         isAddingAIColumn: false
-      }));
+        }));
       } catch (error) {
         console.error('AI enrichment error:', error);
         // Remove the column if enrichment failed
@@ -761,7 +761,7 @@ Return only this JSON format:
   // Early returns after all hooks are defined
   if (authIsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center h-full">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-sm text-muted-foreground">Loading...</p>
@@ -776,85 +776,14 @@ Return only this JSON format:
     return null;
   }
 
-
-
   return (
-    <div className="h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 flex-shrink-0">
-        <div className="flex h-16 items-center px-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="mr-4 lg:hidden"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Search className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <h1 className="text-xl font-semibold">AI Table</h1>
-            </div>
-          </div>
-
-          <div className="ml-auto flex items-center space-x-4">
-            {/* Theme Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
-
-            {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={user.user_metadata?.avatar_url} alt={getUserDisplayName(user)} />
-                    <AvatarFallback className="text-sm">
-                      {getUserInitials(user)}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{getUserDisplayName(user)}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
-
+    <div className="h-full flex flex-col">
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
         <aside className={`
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           fixed inset-y-0 left-0 z-40 w-72 bg-background border-r transition-transform duration-200 ease-in-out
-          lg:relative lg:translate-x-0 top-16 lg:top-0 lg:flex-shrink-0
+          lg:relative lg:translate-x-0 top-0 lg:flex-shrink-0
         `}>
           <div className="flex h-full flex-col">
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -871,7 +800,7 @@ Return only this JSON format:
                   {savedSearches.length === 0 ? (
                     <div className="text-center py-6">
                       <Bookmark className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">No saved searches yet</p>
+                    <p className="text-xs text-muted-foreground">No saved searches yet</p>
                       <p className="text-xs text-muted-foreground">Save your searches to access them later</p>
                     </div>
                   ) : (
@@ -924,7 +853,7 @@ Return only this JSON format:
                   {recentSearches.length === 0 ? (
                     <div className="text-center py-6">
                       <History className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">No recent searches</p>
+                    <p className="text-xs text-muted-foreground">No recent searches</p>
                     </div>
                   ) : (
                     recentSearches.slice(0, 8).map((search, index) => (
@@ -1000,7 +929,7 @@ Return only this JSON format:
                   </div>
                   <div className="flex items-center space-x-2">
                     {searchState.columnFilters.length > 0 && (
-                      <Button
+                  <Button
                         onClick={clearAllFilters}
                         variant="outline"
                         size="sm"
@@ -1075,13 +1004,13 @@ Return only this JSON format:
 
                         {/* Custom Column */}
                         <DropdownMenuItem
-                          onClick={() => {
-                            const columnName = prompt('Enter column name:');
-                            const columnPrompt = prompt('Enter AI prompt for this column:');
-                            if (columnName && columnPrompt) {
-                              addAIColumn(columnName, columnPrompt);
-                            }
-                          }}
+                    onClick={() => {
+                      const columnName = prompt('Enter column name:');
+                      const columnPrompt = prompt('Enter AI prompt for this column:');
+                      if (columnName && columnPrompt) {
+                        addAIColumn(columnName, columnPrompt);
+                      }
+                    }}
                           className="text-sm py-2 cursor-pointer"
                         >
                           <Plus className="h-3 w-3 mr-2 text-blue-500" />
@@ -1101,7 +1030,7 @@ Return only this JSON format:
                                     <span className="text-sm truncate flex-1">{column.header}</span>
                                     <Button
                                       variant="ghost"
-                                      size="sm"
+                    size="sm"
                                       onClick={() => {
                                         setSearchState(prev => ({
                                           ...prev,
@@ -1116,7 +1045,7 @@ Return only this JSON format:
                                       className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                                     >
                                       <X className="h-3 w-3" />
-                                    </Button>
+                  </Button>
                                   </div>
                                 ))}
                             </div>
@@ -1159,14 +1088,14 @@ Return only this JSON format:
                                         ? null
                                         : { columnId: column.accessorKey || column.id, direction: 'asc' }
                                     )}>
-                                      {column.header}
+                                {column.header}
                                     </span>
                                     <ColumnSortIndicator
                                       columnId={column.accessorKey || column.id}
                                       currentSort={searchState.columnSort || undefined}
                                       onSortChange={handleColumnSortChange}
                                     />
-                                    {column.type === 'ai-generated' && (
+                                {column.type === 'ai-generated' && (
                                       <Badge variant="secondary" className="text-xs bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700">
                                         <div className="flex items-center space-x-1">
                                           <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></div>
@@ -1230,15 +1159,15 @@ Return only this JSON format:
                                   ) : (
                                     // Regular cell content
                                     column.accessorKey ? (
-                                      column.accessorKey === 'url' ? (
-                                        <a 
-                                          href={result[column.accessorKey]} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
+                                    column.accessorKey === 'url' ? (
+                                      <a 
+                                        href={result[column.accessorKey]} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
                                           className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline truncate block max-w-xs font-medium transition-colors"
-                                        >
-                                          {String(result[column.accessorKey])}
-                                        </a>
+                                      >
+                                        {String(result[column.accessorKey])}
+                                      </a>
                                       ) : column.accessorKey === 'author' ? (
                                         <div className="flex items-center space-x-2">
                                           <Avatar className="h-6 w-6">
@@ -1250,17 +1179,17 @@ Return only this JSON format:
                                               {String(result[column.accessorKey] || 'U').split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2)}
                                             </AvatarFallback>
                                           </Avatar>
-                                          <span className="truncate block max-w-xs">
+                                      <span className="truncate block max-w-xs">
                                             {String(result[column.accessorKey] || 'N/A')}
                                           </span>
                                         </div>
                                       ) : (
                                         <span className={`truncate block max-w-xs ${column.type === 'ai-generated' ? 'font-medium text-purple-700 dark:text-purple-300' : ''}`}>
-                                          {String(result[column.accessorKey] || 'N/A')}
-                                        </span>
-                                      )
-                                    ) : (
-                                      'N/A'
+                                        {String(result[column.accessorKey] || 'N/A')}
+                                      </span>
+                                    )
+                                  ) : (
+                                    'N/A'
                                     )
                                   )}
                                 </td>
@@ -1342,31 +1271,31 @@ Return only this JSON format:
                   <div className="relative flex-1">
                     <Textarea
                       placeholder="Search for professional profiles... (Shift + Enter for new line)"
-                      value={searchState.query}
-                      onChange={(e) => setSearchState(prev => ({ ...prev, query: e.target.value }))}
-                      onKeyDown={(e) => {
+                    value={searchState.query}
+                    onChange={(e) => setSearchState(prev => ({ ...prev, query: e.target.value }))}
+                    onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
                           performSearch(searchState.query, 10);
-                        }
-                      }}
+                      }
+                    }}
                       className="pr-12 py-3 text-base resize-none"
                       rows={3}
                       disabled={searchState.isLoading}
-                    />
-                    <Button 
+                  />
+                  <Button 
                       onClick={() => performSearch(searchState.query, 10)}
-                      disabled={searchState.isLoading || !searchState.query.trim()}
+                    disabled={searchState.isLoading || !searchState.query.trim()}
                       size="sm"
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-                    >
-                      {searchState.isLoading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                      ) : (
+                  >
+                    {searchState.isLoading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    ) : (
                         <Send className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
+                    )}
+                  </Button>
+                </div>
                 </div>
               </div>
             </div>

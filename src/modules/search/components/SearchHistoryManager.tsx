@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { ExaResultItem } from '@/types/exa';
-import { ColumnDef, EnrichedExaResultItem } from '@/lib/ai-column-generator';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/shared/lib/supabase/client';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { ExaResultItem } from '@/shared/types/exa';
+import { ColumnDef, EnrichedExaResultItem } from '../services/ai-column-generator';
 
 // Types for search management
 export interface SavedSearchItem {
@@ -50,8 +50,8 @@ export const useSearchHistory = () => {
       }
 
       return data || [];
-    } catch (err) {
-      console.error('Exception in fetchSavedSearches:', err);
+    } catch (error) {
+      console.error('Error in fetchSavedSearches:', error);
       return [];
     }
   }, [user]);
@@ -63,7 +63,7 @@ export const useSearchHistory = () => {
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await supabase()
         .from('saved_searches')
         .insert({
           user_id: user.id,
@@ -86,18 +86,9 @@ export const useSearchHistory = () => {
   }, [user]);
 
   const saveCompleteSearch = useCallback(async (searchState: CompleteSearchState): Promise<boolean> => {
-    if (!user) {
-      console.error("No user logged in");
-      return false;
-    }
+    if (!user || !searchState.query.trim()) return false;
 
     try {
-      const metadata = {
-        original_results_count: searchState.originalResults.length,
-        enriched_columns_count: searchState.columnConfiguration.filter(col => col.type === 'ai-generated').length,
-        last_enrichment_date: new Date().toISOString()
-      };
-
       const { error } = await supabase
         .from('saved_searches')
         .insert({
@@ -106,45 +97,44 @@ export const useSearchHistory = () => {
           search_results_data: searchState.originalResults,
           enriched_results_data: searchState.enrichedResults,
           column_configuration: searchState.columnConfiguration,
-          search_metadata: metadata,
-          saved_at: new Date().toISOString()
+          search_metadata: {
+            saved_at: new Date().toISOString(),
+            result_count: searchState.originalResults.length,
+            column_count: searchState.columnConfiguration.length
+          }
         });
 
       if (error) {
-        console.error('Error saving complete search:', error);
+        console.error('Error saving search:', error);
         return false;
       }
 
-      console.log('Complete search saved successfully');
       return true;
-    } catch (err) {
-      console.error('Exception in saveCompleteSearch:', err);
+    } catch (error) {
+      console.error('Error in saveCompleteSearch:', error);
       return false;
     }
   }, [user]);
 
-  const deleteSavedSearch = useCallback(async (searchId: string): Promise<boolean> => {
-    if (!user) {
-      console.error("No user logged in");
-      return false;
-    }
+  const deleteSavedSearch = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) return false;
 
     try {
       const { error } = await supabase
         .from('saved_searches')
         .delete()
-        .eq('id', searchId)
+        .eq('id', id)
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error deleting search:', error);
+        console.error('Error deleting saved search:', error);
         return false;
       }
 
       console.log('Search deleted successfully');
       return true;
-    } catch (err) {
-      console.error('Exception in deleteSavedSearch:', err);
+    } catch (error) {
+      console.error('Error in deleteSavedSearch:', error);
       return false;
     }
   }, [user]);
