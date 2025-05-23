@@ -3,9 +3,16 @@ import { Client } from '@microsoft/microsoft-graph-client';
 import { Message, MailFolder } from '@microsoft/microsoft-graph-types';
 
 // MSAL configuration
+const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID || '60b4dc1e-3b6a-4f78-a84c-d02984c1ba7c';
+console.log('🔐 Microsoft Client ID check:', { 
+  clientId: clientId ? `${clientId.substring(0, 8)}...` : 'MISSING',
+  hasClientId: !!clientId,
+  envValue: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID ? 'SET' : 'NOT_SET'
+});
+
 const msalConfig = {
   auth: {
-    clientId: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID || '',
+    clientId: clientId,
     authority: 'https://login.microsoftonline.com/common',
     redirectUri: typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '',
   },
