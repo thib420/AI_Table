@@ -7,7 +7,7 @@ const msalConfig = {
   auth: {
     clientId: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID || '',
     authority: 'https://login.microsoftonline.com/common',
-    redirectUri: typeof window !== 'undefined' ? window.location.origin : '',
+    redirectUri: typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '',
   },
   cache: {
     cacheLocation: 'sessionStorage',
@@ -21,7 +21,7 @@ const loginRequest = {
 };
 
 export class MicrosoftGraphService {
-  private msalInstance: PublicClientApplication;
+  public msalInstance: PublicClientApplication;
   private graphClient: Client | null = null;
 
   constructor() {
@@ -34,12 +34,9 @@ export class MicrosoftGraphService {
 
   async signIn(): Promise<AuthenticationResult | null> {
     try {
-      const loginResponse = await this.msalInstance.loginPopup(loginRequest);
-      if (loginResponse) {
-        this.setupGraphClient(loginResponse.accessToken);
-        return loginResponse;
-      }
-      return null;
+      // Use redirect instead of popup for better compatibility
+      await this.msalInstance.loginRedirect(loginRequest);
+      return null; // Redirect doesn't return immediately
     } catch (error) {
       console.error('Sign in error:', error);
       throw error;
@@ -49,12 +46,13 @@ export class MicrosoftGraphService {
   async signOut(): Promise<void> {
     const accounts = this.msalInstance.getAllAccounts();
     if (accounts.length > 0) {
-      await this.msalInstance.logoutPopup({
+      await this.msalInstance.logoutRedirect({
         account: accounts[0],
-        mainWindowRedirectUri: window.location.origin,
       });
+    } else {
+      // Clear local state if no accounts
+      this.graphClient = null;
     }
-    this.graphClient = null;
   }
 
   async getAccessToken(): Promise<string | null> {
@@ -93,7 +91,7 @@ export class MicrosoftGraphService {
     return this.msalInstance.getAllAccounts().length > 0;
   }
 
-  private setupGraphClient(accessToken: string): void {
+  public setupGraphClient(accessToken: string): void {
     this.graphClient = Client.init({
       authProvider: (done) => {
         done(null, accessToken);

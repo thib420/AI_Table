@@ -34,17 +34,43 @@ export function MicrosoftAuthProvider({ children }: MicrosoftAuthProviderProps) 
     const initializeMicrosoft = async () => {
       try {
         await microsoftGraphService.initialize();
-        const currentAccount = microsoftGraphService.getCurrentAccount();
-        setAccount(currentAccount);
+        
+        // Check for redirect result first (returning from Microsoft auth)
+        try {
+          const redirectResult = await microsoftGraphService.msalInstance.handleRedirectPromise();
+          if (redirectResult) {
+            console.log('Redirect result received:', redirectResult);
+            setAccount(redirectResult.account);
+            // Set up the graph client with the new token
+            microsoftGraphService.setupGraphClient(redirectResult.accessToken);
+            
+            // Get user profile
+            try {
+              const profile = await microsoftGraphService.getUserProfile();
+              setUserProfile(profile);
+            } catch (error) {
+              console.error('Error fetching user profile after redirect:', error);
+            }
+          } else {
+            // No redirect result, check for existing account
+            const currentAccount = microsoftGraphService.getCurrentAccount();
+            setAccount(currentAccount);
 
-        // If user is signed in, get their profile
-        if (currentAccount) {
-          try {
-            const profile = await microsoftGraphService.getUserProfile();
-            setUserProfile(profile);
-          } catch (error) {
-            console.error('Error fetching user profile:', error);
+            // If user is signed in, get their profile
+            if (currentAccount) {
+              try {
+                const profile = await microsoftGraphService.getUserProfile();
+                setUserProfile(profile);
+              } catch (error) {
+                console.error('Error fetching user profile:', error);
+              }
+            }
           }
+        } catch (error) {
+          console.error('Error handling redirect promise:', error);
+          // Fallback to checking current account
+          const currentAccount = microsoftGraphService.getCurrentAccount();
+          setAccount(currentAccount);
         }
       } catch (error) {
         console.error('Error initializing Microsoft Graph:', error);
@@ -59,22 +85,13 @@ export function MicrosoftAuthProvider({ children }: MicrosoftAuthProviderProps) 
   const signIn = async (): Promise<AuthenticationResult | null> => {
     setIsLoading(true);
     try {
-      const result = await microsoftGraphService.signIn();
-      if (result) {
-        setAccount(result.account);
-        try {
-          const profile = await microsoftGraphService.getUserProfile();
-          setUserProfile(profile);
-        } catch (error) {
-          console.error('Error fetching user profile after sign in:', error);
-        }
-      }
-      return result;
+      // For redirect flow, this will navigate away and not return
+      await microsoftGraphService.signIn();
+      return null; // Won't reach here due to redirect
     } catch (error) {
       console.error('Sign in error:', error);
-      throw error;
-    } finally {
       setIsLoading(false);
+      throw error;
     }
   };
 
