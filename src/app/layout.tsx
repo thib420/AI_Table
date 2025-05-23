@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/common/theme-provider";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
 import { MicrosoftAuthProvider } from "@/modules/mailbox/services/MicrosoftAuthContext";
+import { UnifiedAuthProvider } from "@/shared/contexts/UnifiedAuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,14 +35,16 @@ export default function RootLayout({
         <Analytics />
         <AuthProvider>
           <MicrosoftAuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              {children}
-            </ThemeProvider>
+            <UnifiedAuthProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                {children}
+              </ThemeProvider>
+            </UnifiedAuthProvider>
           </MicrosoftAuthProvider>
         </AuthProvider>
       </body>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/shared/contexts/AuthContext';
+import { useUnifiedAuth } from '@/shared/contexts/UnifiedAuthContext';
 import { supabase } from '@/shared/lib/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MainLayout } from '@/components/layout/MainLayout';
@@ -33,7 +33,15 @@ type BusinessModule = 'ai-table' | 'mailbox' | 'crm' | 'email-campaign';
 
 export default function AppPage() {
   const router = useRouter();
-  const { user, session, isLoading: authIsLoading, signOut } = useAuth();
+  const { 
+    user, 
+    session, 
+    isLoading: authIsLoading, 
+    signOut,
+    hasAnyAuth,
+    isMicrosoftSignedIn,
+    signInToMicrosoft 
+  } = useUnifiedAuth();
   const { fetchSavedSearches, saveCompleteSearch, deleteSavedSearch } = useSearchHistory();
 
   const [currentModule, setCurrentModule] = useState<BusinessModule>('ai-table');
@@ -80,15 +88,22 @@ export default function AppPage() {
 
   // Authentication functions
   const handleLoginWithAzure = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        redirectTo: window.location.origin + '/'
-      },
-    });
-    if (error) {
-      console.error('Error logging in with Azure:', error.message);
-      alert("Failed to login with Azure: " + error.message);
+    // Try Microsoft sign-in first for unified experience
+    try {
+      await signInToMicrosoft();
+    } catch (error) {
+      console.error('Error signing in with Microsoft:', error);
+      // Fallback to Supabase Azure OAuth if Microsoft fails
+      const { error: supabaseError } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: window.location.origin + '/'
+        },
+      });
+      if (supabaseError) {
+        console.error('Error logging in with Azure via Supabase:', supabaseError.message);
+        alert("Failed to login with Azure: " + supabaseError.message);
+      }
     }
   };
 
@@ -208,13 +223,13 @@ export default function AppPage() {
     }
   };
 
-  // Show landing page if user is not authenticated
-  if (!authIsLoading && !user) {
+  // Show landing page if user is not authenticated (no Supabase user AND no Microsoft auth)
+  if (!authIsLoading && !hasAnyAuth) {
     return <LandingPage onGetStarted={handleLoginWithAzure} />;
   }
 
   // Show main application with module navigation for authenticated users
-  if (user) {
+  if (hasAnyAuth) {
     return (
       <MainLayout
         user={user}
