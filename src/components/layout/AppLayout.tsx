@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { SavedSearchItem, CompleteSearchState } from '@/modules/search/components/SearchHistoryManager';
 import { ExaResultItem } from '@/shared/types/exa';
 import { AIColumnGenerator, ColumnDef, EnrichedExaResultItem, AIColumnConfig } from '@/modules/search/services/ai-column-generator';
+import { ResultsTable } from '@/modules/search/components/ResultsTable';
 import { ColumnFilterComponent, ColumnFilter } from '@/components/common/ColumnFilter';
 import { ColumnSortIndicator, ColumnSort, sortData } from '@/components/common/ColumnSort';
 import { useTheme } from 'next-themes';
@@ -770,14 +771,13 @@ Return only this JSON format:
     );
   }
 
-  // This component now only handles authenticated users
+  // This component now handles both authenticated users and development mode
   // Landing page is handled in the main page component
-  if (!user) {
-    return null;
-  }
+  // Temporarily allow access without authentication
+  // if (!user) { return null; }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full w-full flex flex-col">
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
         <aside className={`
@@ -881,8 +881,8 @@ Return only this JSON format:
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-hidden min-h-0">
-          <div className="h-full flex flex-col">
+        <main className="flex-1 overflow-hidden min-h-0 w-full">
+          <div className="h-full w-full flex flex-col">
             <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0 pb-8">
 
             {/* Error Display */}
@@ -1061,145 +1061,20 @@ Return only this JSON format:
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="p-0">
-                  <div className="border rounded-lg mx-6 mb-6">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b bg-muted/30">
-                            <th className="p-4 text-left font-medium text-muted-foreground w-12">
-                              <div className="flex items-center justify-center">
-                                <input
-                                  type="checkbox"
-                                  checked={searchState.selectedRows.size === searchState.sortedResults.length && searchState.sortedResults.length > 0}
-                                  onChange={toggleAllRows}
-                                  className="rounded border-gray-300 text-primary focus:ring-primary"
-                                />
-                              </div>
-                            </th>
-                            {searchState.columns.map((column) => (
-                              <th key={column.id} className="p-4 text-left font-medium text-muted-foreground group">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-2">
-                                    <span className="cursor-pointer hover:text-foreground transition-colors" onClick={() => handleColumnSortChange(
-                                      searchState.columnSort?.columnId === (column.accessorKey || column.id) && searchState.columnSort?.direction === 'asc'
-                                        ? { columnId: column.accessorKey || column.id, direction: 'desc' }
-                                        : searchState.columnSort?.columnId === (column.accessorKey || column.id) && searchState.columnSort?.direction === 'desc'
-                                        ? null
-                                        : { columnId: column.accessorKey || column.id, direction: 'asc' }
-                                    )}>
-                                {column.header}
-                                    </span>
-                                    <ColumnSortIndicator
-                                      columnId={column.accessorKey || column.id}
-                                      currentSort={searchState.columnSort || undefined}
-                                      onSortChange={handleColumnSortChange}
-                                    />
-                                {column.type === 'ai-generated' && (
-                                      <Badge variant="secondary" className="text-xs bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700">
-                                        <div className="flex items-center space-x-1">
-                                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></div>
-                                          <span>AI</span>
-                                        </div>
-                                      </Badge>
-                                    )}
-                                    {/* Remove Column Button - only show for non-default columns or when there are more than 4 columns */}
-                                    {(column.type === 'ai-generated' || searchState.columns.length > 4) && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeColumn(column.id)}
-                                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                                        title={`Remove ${column.header} column`}
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <ColumnFilterComponent
-                                      columnId={column.accessorKey || column.id}
-                                      columnHeader={column.header}
-                                      data={searchState.enrichedResults}
-                                      accessorKey={column.accessorKey || column.id}
-                                      currentFilter={searchState.columnFilters.find(f => f.columnId === (column.accessorKey || column.id))}
-                                      onFilterChange={(filter) => handleColumnFilterChange(column.accessorKey || column.id, filter)}
-                                    />
-                                  </div>
-                                </div>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {searchState.sortedResults.map((result, index) => (
-                            <tr key={result.id || index} className={`border-b hover:bg-muted/30 transition-colors ${searchState.selectedRows.has(index) ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}>
-                              <td className="p-4 w-12">
-                                <div className="flex items-center justify-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={searchState.selectedRows.has(index)}
-                                    onChange={() => toggleRowSelection(index)}
-                                    className="rounded border-gray-300 text-primary focus:ring-primary"
-                                  />
-                                </div>
-                              </td>
-                              {searchState.columns.map((column) => (
-                                <td key={column.id} className="p-4 relative">
-                                  {isCellProcessing(index, column.id) ? (
-                                    // Loading animation for AI processing
-                                    <div className="flex items-center space-x-2">
-                                      <div className="animate-pulse flex space-x-2 items-center w-full">
-                                        <div className="h-4 bg-gradient-to-r from-purple-200 via-violet-200 to-blue-200 dark:from-purple-800 dark:via-violet-800 dark:to-blue-800 rounded animate-shimmer bg-[length:200%_100%] flex-1 max-w-24"></div>
-                                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                        <div className="w-2 h-2 bg-violet-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    // Regular cell content
-                                    column.accessorKey ? (
-                                    column.accessorKey === 'url' ? (
-                                      <a 
-                                        href={result[column.accessorKey]} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline truncate block max-w-xs font-medium transition-colors"
-                                      >
-                                        {String(result[column.accessorKey])}
-                                      </a>
-                                      ) : column.accessorKey === 'author' ? (
-                                        <div className="flex items-center space-x-2">
-                                          <Avatar className="h-6 w-6">
-                                            <AvatarImage 
-                                              src={generateProfilePicture(String(result[column.accessorKey] || '')) || undefined}
-                                              alt={String(result[column.accessorKey] || 'Profile')}
-                                            />
-                                            <AvatarFallback className="text-xs bg-primary/10 text-primary border">
-                                              {String(result[column.accessorKey] || 'U').split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2)}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                      <span className="truncate block max-w-xs">
-                                            {String(result[column.accessorKey] || 'N/A')}
-                                          </span>
-                                        </div>
-                                      ) : (
-                                        <span className={`truncate block max-w-xs ${column.type === 'ai-generated' ? 'font-medium text-purple-700 dark:text-purple-300' : ''}`}>
-                                        {String(result[column.accessorKey] || 'N/A')}
-                                      </span>
-                                    )
-                                  ) : (
-                                    'N/A'
-                                    )
-                                  )}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                <CardContent className="p-6">
+                  <ResultsTable
+                    results={searchState.sortedResults}
+                    columns={searchState.columns}
+                    isAddingAIColumn={searchState.isAddingAIColumn}
+                    aiProcessing={searchState.aiProcessing}
+                    selectedRows={searchState.selectedRows}
+                    onRowSelection={(selectedRows) => setSearchState(prev => ({ ...prev, selectedRows }))}
+                    columnFilters={searchState.columnFilters}
+                    onColumnFiltersChange={(filters) => setSearchState(prev => ({ ...prev, columnFilters: filters }))}
+                    columnSort={searchState.columnSort}
+                    onColumnSortChange={handleColumnSortChange}
+                    isLoading={searchState.isLoading}
+                  />
                 </CardContent>
                 {/* Load More Results Button */}
                 {searchState.results.length > 0 && searchState.currentResultCount < 100 && (

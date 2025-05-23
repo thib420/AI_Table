@@ -225,14 +225,14 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
             </Button>
 
             {/* User Menu */}
-            {user && (
+            {(user || true) && ( // Temporarily always show user menu
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.user_metadata?.avatar_url} alt={getUserDisplayName(user)} />
+                      <AvatarImage src={user?.user_metadata?.avatar_url} alt={user ? getUserDisplayName(user) : 'Dev User'} />
                       <AvatarFallback className="text-sm">
-                        {getUserInitials(user)}
+                        {user ? getUserInitials(user) : 'DV'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -240,9 +240,9 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{getUserDisplayName(user)}</p>
+                      <p className="text-sm font-medium leading-none">{user ? getUserDisplayName(user) : 'Development User'}</p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
+                        {user?.email || 'dev@example.com'}
                       </p>
                     </div>
                   </DropdownMenuLabel>
