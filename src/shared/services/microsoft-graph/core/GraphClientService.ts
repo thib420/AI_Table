@@ -10,7 +10,14 @@ export class GraphClientService {
 
   private constructor(config?: Partial<GraphServiceConfig>) {
     this.config = {
-      scopes: ['User.Read'],
+      scopes: [
+        'User.Read',
+        'Mail.Read',
+        'Mail.ReadWrite',
+        'Contacts.Read',
+        'Contacts.ReadWrite',
+        'People.Read'
+      ],
       baseUrl: 'https://graph.microsoft.com',
       version: 'v1.0',
       ...config
@@ -43,7 +50,7 @@ export class GraphClientService {
       authProvider: (done) => {
         done(null, token);
       },
-      baseUrl: `${this.config.baseUrl}/${this.config.version}`,
+      baseUrl: this.config.baseUrl,
     });
   }
 
@@ -65,7 +72,14 @@ export class GraphClientService {
     expand?: string[];
   }): Promise<T> {
     const client = await this.getClient();
-    let request = client.api(endpoint);
+    
+    // Ensure endpoint starts with version if it doesn't already
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const versionedEndpoint = normalizedEndpoint.startsWith(`/${this.config.version}`) 
+      ? normalizedEndpoint 
+      : `/${this.config.version}${normalizedEndpoint}`;
+    
+    let request = client.api(versionedEndpoint);
 
     // Apply query parameters
     if (options?.select) {
@@ -96,6 +110,7 @@ export class GraphClientService {
 
     // Execute request based on method
     try {
+      console.log(`🔍 Making Graph API request to: ${versionedEndpoint}`);
       switch (options?.method || 'GET') {
         case 'GET':
           return await request.get();
@@ -109,7 +124,7 @@ export class GraphClientService {
           throw new Error(`Unsupported HTTP method: ${options?.method}`);
       }
     } catch (error) {
-      console.error(`Graph API request failed for ${endpoint}:`, error);
+      console.error(`❌ Graph API request failed for ${versionedEndpoint}:`, error);
       throw error;
     }
   }
@@ -131,18 +146,38 @@ export class GraphClientService {
     const maxPages = options?.maxPages || 10;
 
     while (nextLink && pageCount < maxPages) {
+      let currentEndpoint = nextLink;
+      let requestOptions: {
+        select?: string[];
+        filter?: string;
+        orderBy?: string;
+        top?: number;
+      } = {
+        select: options?.select,
+        filter: options?.filter,
+        orderBy: options?.orderBy,
+        top: options?.top,
+      };
+
+      // If nextLink is a full URL (from @odata.nextLink), extract just the path
+      if (nextLink.startsWith('https://')) {
+        try {
+          const url = new URL(nextLink);
+          currentEndpoint = url.pathname + url.search;
+          // Don't apply additional query parameters for nextLink URLs
+          requestOptions = {};
+        } catch (error) {
+          console.warn('Failed to parse nextLink URL:', nextLink);
+        }
+      }
+
       const response: {
         value: T[];
         '@odata.nextLink'?: string;
       } = await this.makeRequest<{
         value: T[];
         '@odata.nextLink'?: string;
-      }>(nextLink, {
-        select: options?.select,
-        filter: options?.filter,
-        orderBy: options?.orderBy,
-        top: options?.top,
-      });
+      }>(currentEndpoint, requestOptions);
 
       results.push(...response.value);
       nextLink = response['@odata.nextLink'];

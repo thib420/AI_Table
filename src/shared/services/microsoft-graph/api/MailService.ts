@@ -16,20 +16,32 @@ export class MailService {
 
   // Get emails from a specific folder
   async getEmails(folderId: string = 'inbox', top: number = 50): Promise<Message[]> {
+    console.log(`📧 MailService.getEmails called with folderId: ${folderId}, top: ${top}`);
+    
     const endpoint = folderId === 'inbox' 
       ? '/me/messages'
       : `/me/mailFolders/${folderId}/messages`;
 
-    return await graphClientService.makePaginatedRequest<Message>(endpoint, {
-      select: [
-        'id', 'subject', 'bodyPreview', 'sender', 'receivedDateTime', 
-        'isRead', 'flag', 'hasAttachments', 'webLink', 'importance',
-        'toRecipients', 'ccRecipients'
-      ],
-      orderBy: 'receivedDateTime desc',
-      top,
-      maxPages: 3
-    });
+    console.log(`📧 Using endpoint: ${endpoint}`);
+
+    try {
+      const result = await graphClientService.makePaginatedRequest<Message>(endpoint, {
+        select: [
+          'id', 'subject', 'bodyPreview', 'sender', 'receivedDateTime', 
+          'isRead', 'flag', 'hasAttachments', 'webLink', 'importance',
+          'toRecipients', 'ccRecipients'
+        ],
+        orderBy: 'receivedDateTime desc',
+        top,
+        maxPages: 3
+      });
+      
+      console.log(`✅ MailService.getEmails successful: ${result.length} messages`);
+      return result;
+    } catch (error) {
+      console.error(`❌ MailService.getEmails failed for endpoint ${endpoint}:`, error);
+      throw error;
+    }
   }
 
   // Get a specific email by ID
