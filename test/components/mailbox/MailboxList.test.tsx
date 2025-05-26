@@ -122,8 +122,8 @@ describe('MailboxList', () => {
       const onSelect = jest.fn()
       render(<MailboxList {...defaultProps} onSelect={onSelect} />)
 
-      const firstEmail = screen.getByText('John Doe').closest('div')
-      fireEvent.click(firstEmail!)
+      const emailRows = screen.getAllByTestId('email-row')
+      fireEvent.click(emailRows[0])
 
       expect(onSelect).toHaveBeenCalledWith(mockEmails[0])
     })
@@ -131,15 +131,15 @@ describe('MailboxList', () => {
     it('should highlight selected email', () => {
       render(<MailboxList {...defaultProps} selectedEmailId="1" />)
 
-      const selectedEmail = screen.getByText('John Doe').closest('div')
-      expect(selectedEmail).toHaveClass('bg-muted')
+      const emailRows = screen.getAllByTestId('email-row')
+      expect(emailRows[0]).toHaveClass('bg-muted')
     })
 
     it('should not highlight unselected emails', () => {
       render(<MailboxList {...defaultProps} selectedEmailId="1" />)
 
-      const unselectedEmail = screen.getByText('Jane Smith').closest('div')
-      expect(unselectedEmail).not.toHaveClass('bg-muted')
+      const emailRows = screen.getAllByTestId('email-row')
+      expect(emailRows[1]).not.toHaveClass('bg-muted')
     })
   })
 
@@ -147,16 +147,16 @@ describe('MailboxList', () => {
     it('should style unread emails differently', () => {
       render(<MailboxList {...defaultProps} />)
 
-      const unreadEmail = screen.getByText('John Doe').closest('div')
-      expect(unreadEmail).toHaveClass('bg-blue-50', 'dark:bg-blue-950/20', 'border-l-2', 'border-l-blue-500')
+      const emailRows = screen.getAllByTestId('email-row')
+      expect(emailRows[0]).toHaveClass('bg-blue-50', 'dark:bg-blue-950/20', 'border-l-2', 'border-l-blue-500')
     })
 
     it('should not apply unread styling to read emails', () => {
       render(<MailboxList {...defaultProps} />)
 
-      const readEmail = screen.getByText('Jane Smith').closest('div')
-      expect(readEmail).not.toHaveClass('bg-blue-50')
-      expect(readEmail).not.toHaveClass('border-l-2')
+      const emailRows = screen.getAllByTestId('email-row')
+      expect(emailRows[1]).not.toHaveClass('bg-blue-50')
+      expect(emailRows[1]).not.toHaveClass('border-l-2')
     })
 
     it('should make unread email sender name bold', () => {
@@ -238,10 +238,9 @@ describe('MailboxList', () => {
     it('should have clickable email rows', () => {
       render(<MailboxList {...defaultProps} />)
 
-      const emailRows = screen.getAllByText(/John Doe|Jane Smith|Bob Wilson/)
+      const emailRows = screen.getAllByTestId('email-row')
       emailRows.forEach(row => {
-        const emailRow = row.closest('div')
-        expect(emailRow).toHaveClass('cursor-pointer')
+        expect(row).toHaveClass('cursor-pointer')
       })
     })
   })
@@ -268,22 +267,18 @@ describe('MailboxList', () => {
     it('should have hover effects on email rows', () => {
       render(<MailboxList {...defaultProps} />)
 
-      const emailRows = screen.getAllByText('John Doe').map(text => text.closest('div'))
+      const emailRows = screen.getAllByTestId('email-row')
       emailRows.forEach(row => {
-        if (row) {
-          expect(row).toHaveClass('hover:bg-muted/50')
-        }
+        expect(row).toHaveClass('hover:bg-muted/50')
       })
     })
 
     it('should have transition effects', () => {
       render(<MailboxList {...defaultProps} />)
 
-      const emailRows = screen.getAllByText('John Doe').map(text => text.closest('div'))
+      const emailRows = screen.getAllByTestId('email-row')
       emailRows.forEach(row => {
-        if (row) {
-          expect(row).toHaveClass('transition-colors')
-        }
+        expect(row).toHaveClass('transition-colors')
       })
     })
   })

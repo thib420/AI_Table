@@ -19,6 +19,7 @@ interface MailboxPageProps {
 export function MailboxPage({ onCustomerView }: MailboxPageProps = {}) {
   const { isSignedIn, isLoading: authLoading, signIn, signOut, userProfile } = useMicrosoftAuth();
   const [showSetupHelp, setShowSetupHelp] = useState(false);
+  const [useDemoMode, setUseDemoMode] = useState(false);
   const {
     emails,
     allEmails,
@@ -73,8 +74,8 @@ export function MailboxPage({ onCustomerView }: MailboxPageProps = {}) {
   const microsoftClientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID;
   const isMicrosoftConfigured = microsoftClientId && microsoftClientId !== 'your_microsoft_client_id_here';
 
-  // Show connection prompt if not connected
-  if (!isSignedIn && !authLoading) {
+  // Show connection prompt if not connected and not using demo mode
+  if (!isSignedIn && !authLoading && !useDemoMode) {
     return (
       <div className="h-full flex flex-col">
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 flex-shrink-0">
@@ -150,7 +151,7 @@ export function MailboxPage({ onCustomerView }: MailboxPageProps = {}) {
                   </div>
                 </div>
                 
-                <Button variant="outline" onClick={() => {}} className="w-full">
+                <Button variant="outline" onClick={() => setUseDemoMode(true)} className="w-full">
                   Continue with Demo Data
                 </Button>
               </div>
@@ -263,7 +264,7 @@ export function MailboxPage({ onCustomerView }: MailboxPageProps = {}) {
             </div>
             {/* Email Content */}
             <div className="flex-1 flex flex-col">
-              <MailboxDetail email={selectedEmail} onViewCustomer={handleViewCustomer} />
+              <MailboxDetail email={selectedEmail} onViewCustomer={onCustomerView ? handleViewCustomer : undefined} />
             </div>
           </div>
         </div>

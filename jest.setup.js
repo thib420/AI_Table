@@ -74,6 +74,22 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }))
 
+// Mock crypto for MSAL
+Object.defineProperty(global, 'crypto', {
+  value: {
+    getRandomValues: jest.fn().mockImplementation((arr) => {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = Math.floor(Math.random() * 256)
+      }
+      return arr
+    }),
+    subtle: {
+      digest: jest.fn().mockResolvedValue(new ArrayBuffer(32)),
+    },
+  },
+  writable: true,
+})
+
 // Suppress console warnings in tests
 const originalWarn = console.warn
 beforeAll(() => {

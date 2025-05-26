@@ -22,6 +22,7 @@ export function MailboxList({ emails, selectedEmailId, onSelect, onToggleStar }:
       {emails.map((email) => (
         <div
           key={email.id}
+          data-testid="email-row"
           className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors ${
             selectedEmailId === email.id ? 'bg-muted' : ''
           } ${!email.isRead ? 'bg-blue-50 dark:bg-blue-950/20 border-l-2 border-l-blue-500' : ''}`}
