@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ContactDetailPage } from '@/modules/customer/components/ContactDetailPage';
+import { Customer360View } from './Customer360View';
 import { DashboardView } from './DashboardView';
 import { ContactsView } from './ContactsView';
 import { DealsView } from './DealsView';
@@ -18,11 +19,24 @@ import { CRMView, CRMPageProps } from '../types';
 export function CRMPage({ selectedCustomerId, onCustomerBack }: CRMPageProps = {}) {
   const [currentView, setCurrentView] = useState<CRMView>('dashboard');
   const [selectedContactId, setSelectedContactId] = useState<string | null>(selectedCustomerId || null);
+  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
 
   // Update selectedContactId when prop changes
   useEffect(() => {
+    console.log('🏢 CRMPage: selectedCustomerId changed to:', selectedCustomerId);
+    
     if (selectedCustomerId) {
-      setSelectedContactId(selectedCustomerId);
+      // Check if it's an email (contains @) or a contact ID
+      if (selectedCustomerId.includes('@')) {
+        console.log('🏢 CRMPage: Detected email, setting customer-360 view');
+        setCustomerEmail(selectedCustomerId);
+        setCurrentView('customer-360');
+      } else {
+        console.log('🏢 CRMPage: Detected contact ID, setting contact view');
+        setSelectedContactId(selectedCustomerId);
+      }
+    } else {
+      console.log('🏢 CRMPage: No selectedCustomerId, staying on dashboard');
     }
   }, [selectedCustomerId]);
 
@@ -30,8 +44,15 @@ export function CRMPage({ selectedCustomerId, onCustomerBack }: CRMPageProps = {
     setSelectedContactId(contactId);
   };
 
+  const handleCustomer360View = (email: string) => {
+    setCustomerEmail(email);
+    setCurrentView('customer-360');
+  };
+
   const handleBackToCRM = () => {
     setSelectedContactId(null);
+    setCustomerEmail(null);
+    setCurrentView('dashboard');
     if (onCustomerBack) {
       onCustomerBack();
     }
@@ -47,12 +68,27 @@ export function CRMPage({ selectedCustomerId, onCustomerBack }: CRMPageProps = {
         return <DealsView />;
       case 'companies':
         return <CompaniesView />;
+      case 'customer-360':
+        return customerEmail ? (
+          <Customer360View 
+            customerEmail={customerEmail} 
+            onBack={handleBackToCRM} 
+          />
+        ) : <DashboardView />;
       default:
         return <DashboardView />;
     }
   };
 
-  if (selectedContactId) {
+  // Handle Customer 360 view first (highest priority)
+  if (currentView === 'customer-360' && customerEmail) {
+    console.log('🏢 CRMPage: Rendering Customer360View with email:', customerEmail);
+    return <Customer360View customerEmail={customerEmail} onBack={handleBackToCRM} />;
+  }
+
+  // Handle contact detail view
+  if (selectedContactId && currentView !== 'customer-360') {
+    console.log('🏢 CRMPage: Rendering ContactDetailPage with ID:', selectedContactId);
     return <ContactDetailPage contactId={selectedContactId} onBack={handleBackToCRM} />;
   }
 

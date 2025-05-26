@@ -76,34 +76,78 @@ export class MailService {
 
   // Search emails
   async searchEmails(searchTerm: string, folderId?: string): Promise<Message[]> {
-    const endpoint = folderId 
-      ? `me/mailFolders/${folderId}/messages`
-      : this.baseEndpoint;
+    try {
+      console.log(`📧 MailService.searchEmails called with: ${searchTerm}`);
+      
+      const endpoint = folderId 
+        ? `me/mailFolders/${folderId}/messages`
+        : this.baseEndpoint;
 
-    return await graphClientService.makePaginatedRequest<Message>(endpoint, {
-      filter: `contains(subject,'${searchTerm}') or contains(bodyPreview,'${searchTerm}')`,
-      select: [
-        'id', 'subject', 'bodyPreview', 'sender', 'receivedDateTime',
-        'isRead', 'flag', 'hasAttachments', 'webLink'
-      ],
-      orderBy: 'receivedDateTime desc',
-      top: 50,
-      maxPages: 2
-    });
+      // Simplified search - just by subject to avoid "too complex" errors
+      const result = await graphClientService.makePaginatedRequest<Message>(endpoint, {
+        filter: `contains(subject,'${searchTerm}')`,
+        select: [
+          'id', 'subject', 'bodyPreview', 'sender', 'receivedDateTime',
+          'isRead', 'flag', 'hasAttachments', 'webLink', 'importance'
+        ],
+        top: 50,
+        maxPages: 2
+        // Removed orderBy to avoid complexity issues
+      });
+      
+      console.log(`✅ MailService.searchEmails successful: ${result.length} emails found`);
+      return result;
+    } catch (error) {
+      console.error(`❌ MailService.searchEmails failed for ${searchTerm}:`, error);
+      throw error;
+    }
   }
 
   // Get emails from a specific sender
   async getEmailsFromSender(senderEmail: string): Promise<Message[]> {
-    return await graphClientService.makePaginatedRequest<Message>(this.baseEndpoint, {
-      filter: `sender/emailAddress/address eq '${senderEmail}'`,
-      select: [
-        'id', 'subject', 'bodyPreview', 'sender', 'receivedDateTime',
-        'isRead', 'flag', 'hasAttachments', 'webLink'
-      ],
-      orderBy: 'receivedDateTime desc',
-      top: 100,
-      maxPages: 3
-    });
+    try {
+      console.log(`📧 MailService.getEmailsFromSender called with: ${senderEmail}`);
+      
+      const result = await graphClientService.makePaginatedRequest<Message>(this.baseEndpoint, {
+        filter: `sender/emailAddress/address eq '${senderEmail}'`,
+        select: [
+          'id', 'subject', 'bodyPreview', 'sender', 'receivedDateTime',
+          'isRead', 'flag', 'hasAttachments', 'webLink', 'importance'
+        ],
+        top: 100,
+        maxPages: 3
+        // Removed orderBy to avoid complexity issues
+      });
+      
+      console.log(`✅ MailService.getEmailsFromSender successful: ${result.length} emails found`);
+      return result;
+    } catch (error) {
+      console.error(`❌ MailService.getEmailsFromSender failed for ${senderEmail}:`, error);
+      
+      // If the filter fails, try a simpler approach - get all emails and filter client-side
+      try {
+        console.log(`🔄 Trying fallback approach for ${senderEmail}`);
+        const allEmails = await graphClientService.makePaginatedRequest<Message>(this.baseEndpoint, {
+          select: [
+            'id', 'subject', 'bodyPreview', 'sender', 'receivedDateTime',
+            'isRead', 'flag', 'hasAttachments', 'webLink', 'importance'
+          ],
+          top: 50,
+          maxPages: 1
+        });
+        
+        // Filter client-side
+        const filteredEmails = allEmails.filter(email => 
+          email.sender?.emailAddress?.address?.toLowerCase() === senderEmail.toLowerCase()
+        );
+        
+        console.log(`✅ MailService.getEmailsFromSender fallback successful: ${filteredEmails.length} emails found`);
+        return filteredEmails;
+      } catch (fallbackError) {
+        console.error(`❌ MailService.getEmailsFromSender fallback also failed:`, fallbackError);
+        throw error; // Throw the original error
+      }
+    }
   }
 
   // Get unread emails

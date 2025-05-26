@@ -36,10 +36,17 @@ export function MailboxPage({ onCustomerView }: MailboxPageProps = {}) {
     toggleStar,
   } = useMailbox();
 
-  // Helper for quick customer add (stub)
+  // Helper for quick customer add - opens Customer 360 view
   const handleQuickCustomer = () => {
+    console.log('📧 handleQuickCustomer called');
+    console.log('📧 selectedEmail:', selectedEmail);
+    console.log('📧 onCustomerView:', onCustomerView);
+    
     if (selectedEmail && onCustomerView) {
+      console.log('📧 Calling onCustomerView with:', selectedEmail.senderEmail);
       onCustomerView(selectedEmail.senderEmail);
+    } else {
+      console.log('❌ Cannot call onCustomerView - missing selectedEmail or onCustomerView');
     }
   };
 

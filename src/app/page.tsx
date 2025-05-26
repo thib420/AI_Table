@@ -225,9 +225,11 @@ export default function AppPage() {
     }
   };
 
-  const handleCustomerView = (customerId: string) => {
-    setSelectedCustomerId(customerId);
+  const handleCustomerView = (customerIdOrEmail: string) => {
+    console.log('🎯 handleCustomerView called with:', customerIdOrEmail);
+    setSelectedCustomerId(customerIdOrEmail);
     setCurrentModule('crm');
+    console.log('🎯 Switching to CRM module with customer:', customerIdOrEmail);
   };
 
   // Render the appropriate module content

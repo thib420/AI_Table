@@ -51,9 +51,10 @@ export class GraphCRMService {
   // Get a specific contact by ID
   async getContact(contactId: string): Promise<Contact | null> {
     try {
+      await graphServiceManager.initialize();
       // Try to find in different Graph sources
       const [graphContact, person, user] = await Promise.allSettled([
-        contactsService.getContact(contactId).catch(() => null),
+        graphServiceManager.contacts.getContact(contactId).catch(() => null),
         // People and Users APIs don't have direct ID lookup, would need search
         Promise.resolve(null),
         Promise.resolve(null)
@@ -74,9 +75,10 @@ export class GraphCRMService {
   // Search contacts across all Graph sources
   async searchContacts(searchTerm: string): Promise<Contact[]> {
     try {
+      await graphServiceManager.initialize();
       const [graphContacts, people] = await Promise.allSettled([
-        withRetry(() => contactsService.searchContacts(searchTerm)),
-        withRetry(() => peopleService.fuzzySearchPeople(searchTerm))
+        withRetry(() => graphServiceManager.contacts.searchContacts(searchTerm)),
+        withRetry(() => graphServiceManager.people?.fuzzySearchPeople(searchTerm) || Promise.resolve([]))
       ]);
 
       let allCRMContacts: CRMContact[] = [];
@@ -102,9 +104,10 @@ export class GraphCRMService {
   // Get contacts by company
   async getContactsByCompany(companyName: string): Promise<Contact[]> {
     try {
+      await graphServiceManager.initialize();
       const [graphContacts, people] = await Promise.allSettled([
-        withRetry(() => contactsService.getContactsByCompany(companyName)),
-        withRetry(() => peopleService.getPeopleByCompany(companyName))
+        withRetry(() => graphServiceManager.contacts.getContactsByCompany(companyName)),
+        withRetry(() => graphServiceManager.people?.getPeopleByCompany(companyName) || Promise.resolve([]))
       ]);
 
       let allCRMContacts: CRMContact[] = [];
@@ -224,7 +227,8 @@ export class GraphCRMService {
   // Create a new contact
   async createContact(contactData: Partial<Contact>): Promise<Contact> {
     try {
-      const graphContact = await contactsService.createContact({
+      await graphServiceManager.initialize();
+      const graphContact = await graphServiceManager.contacts.createContact({
         displayName: contactData.name,
         givenName: contactData.name?.split(' ')[0],
         surname: contactData.name?.split(' ').slice(1).join(' '),
@@ -247,7 +251,8 @@ export class GraphCRMService {
   // Update a contact
   async updateContact(contactId: string, updates: Partial<Contact>): Promise<Contact> {
     try {
-      const graphContact = await contactsService.updateContact(contactId, {
+      await graphServiceManager.initialize();
+      const graphContact = await graphServiceManager.contacts.updateContact(contactId, {
         displayName: updates.name,
         emailAddresses: updates.email ? [{ address: updates.email }] : undefined,
         businessPhones: updates.phone ? [updates.phone] : undefined,
@@ -268,7 +273,8 @@ export class GraphCRMService {
   // Delete a contact
   async deleteContact(contactId: string): Promise<void> {
     try {
-      await contactsService.deleteContact(contactId);
+      await graphServiceManager.initialize();
+      await graphServiceManager.contacts.deleteContact(contactId);
     } catch (error) {
       console.error('Error deleting contact:', error);
       throw error;
