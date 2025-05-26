@@ -25,7 +25,7 @@ export function MailboxDetail({ email, onViewCustomer }: MailboxDetailProps) {
   }
   return (
     <>
-      <div className="p-4 border-b">
+      <div className="p-4 border-b bg-muted/10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <Avatar className="h-10 w-10">
@@ -65,11 +65,16 @@ export function MailboxDetail({ email, onViewCustomer }: MailboxDetailProps) {
           )}
         </div>
       </div>
-      <div className="flex-1 p-6">
-        <div className="prose max-w-none">
-          <p>{email.preview}</p>
-          <br />
-          <p>This is a preview of the email content. In a real implementation, this would show the full email body with proper formatting, attachments, and embedded content.</p>
+      <div className="flex-1 p-6 overflow-auto">
+        <div className="prose max-w-none prose-sm">
+          <div className="bg-muted/30 rounded-lg p-4 mb-4">
+            <p className="text-sm text-muted-foreground mb-2">Email Preview:</p>
+            <p className="leading-relaxed">{email.preview}</p>
+          </div>
+          <div className="space-y-4">
+            <p className="leading-relaxed">This is a preview of the email content. In a real implementation, this would show the full email body with proper formatting, attachments, and embedded content.</p>
+            <p className="leading-relaxed">The email content would be displayed here with full HTML rendering, inline images, and proper text formatting. This area now has more space to display longer email content comfortably.</p>
+          </div>
         </div>
       </div>
     </>

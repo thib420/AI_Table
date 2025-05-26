@@ -254,7 +254,19 @@ export function MailboxPage({ onCustomerView }: MailboxPageProps = {}) {
           />
           {/* Email List */}
           <div className="flex-1 flex min-h-0">
-            <div className="w-1/2 border-r flex flex-col">
+            <div className="w-1/6 border-r flex flex-col">
+              <div className="p-4 border-b bg-muted/20">
+                <h3 className="font-medium text-sm">
+                  {currentView === 'inbox' ? 'Inbox' : 
+                   currentView === 'starred' ? 'Starred' :
+                   currentView === 'sent' ? 'Sent' :
+                   currentView === 'drafts' ? 'Drafts' :
+                   currentView === 'archive' ? 'Archive' : 'Emails'}
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    ({emails.length})
+                  </span>
+                </h3>
+              </div>
               <MailboxList
                 emails={emails}
                 selectedEmailId={selectedEmail?.id || null}

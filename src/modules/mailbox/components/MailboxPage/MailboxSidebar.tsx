@@ -17,7 +17,7 @@ interface MailboxSidebarProps {
 
 export function MailboxSidebar({ currentView, setCurrentView, searchQuery, setSearchQuery, inboxUnread, starredCount, onQuickCustomer }: MailboxSidebarProps) {
   return (
-    <div className="w-64 border-r bg-muted/20 flex-shrink-0">
+    <div className="w-56 border-r bg-muted/20 flex-shrink-0">
       <div className="p-4 space-y-2">
         {/* Search */}
         <div className="relative mb-4">

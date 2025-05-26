@@ -18,18 +18,18 @@ export function MailboxList({ emails, selectedEmailId, onSelect, onToggleStar }:
   };
 
   return (
-    <div className="divide-y">
+    <div className="divide-y overflow-auto flex-1">
       {emails.map((email) => (
         <div
           key={email.id}
           data-testid="email-row"
-          className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors ${
+          className={`p-3 hover:bg-muted/50 cursor-pointer transition-colors ${
             selectedEmailId === email.id ? 'bg-muted' : ''
           } ${!email.isRead ? 'bg-blue-50 dark:bg-blue-950/20 border-l-2 border-l-blue-500' : ''}`}
           onClick={() => onSelect(email)}
         >
-          <div className="flex items-start space-x-3">
-            <Avatar className="h-10 w-10">
+          <div className="flex items-start space-x-2">
+            <Avatar className="h-8 w-8">
               <AvatarImage src={email.avatarUrl} alt={email.sender} />
               <AvatarFallback>{email.sender.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>

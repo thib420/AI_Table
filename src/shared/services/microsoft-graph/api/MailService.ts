@@ -3,7 +3,7 @@ import { Message, MailFolder } from '@microsoft/microsoft-graph-types';
 
 export class MailService {
   private static instance: MailService;
-  private readonly baseEndpoint = '/me/messages';
+  private readonly baseEndpoint = 'me/messages';
 
   private constructor() {}
 
@@ -19,8 +19,8 @@ export class MailService {
     console.log(`📧 MailService.getEmails called with folderId: ${folderId}, top: ${top}`);
     
     const endpoint = folderId === 'inbox' 
-      ? '/me/messages'
-      : `/me/mailFolders/${folderId}/messages`;
+      ? 'me/messages'
+      : `me/mailFolders/${folderId}/messages`;
 
     console.log(`📧 Using endpoint: ${endpoint}`);
 
@@ -77,7 +77,7 @@ export class MailService {
   // Search emails
   async searchEmails(searchTerm: string, folderId?: string): Promise<Message[]> {
     const endpoint = folderId 
-      ? `/me/mailFolders/${folderId}/messages`
+      ? `me/mailFolders/${folderId}/messages`
       : this.baseEndpoint;
 
     return await graphClientService.makePaginatedRequest<Message>(endpoint, {
@@ -109,7 +109,7 @@ export class MailService {
   // Get unread emails
   async getUnreadEmails(folderId?: string): Promise<Message[]> {
     const endpoint = folderId 
-      ? `/me/mailFolders/${folderId}/messages`
+      ? `me/mailFolders/${folderId}/messages`
       : this.baseEndpoint;
 
     return await graphClientService.makePaginatedRequest<Message>(endpoint, {
@@ -197,7 +197,7 @@ export class MailService {
 
   // Get mail folders
   async getMailFolders(): Promise<MailFolder[]> {
-    return await graphClientService.makePaginatedRequest<MailFolder>('/me/mailFolders', {
+    return await graphClientService.makePaginatedRequest<MailFolder>('me/mailFolders', {
       select: ['id', 'displayName', 'childFolderCount', 'unreadItemCount', 'totalItemCount'],
       orderBy: 'displayName',
       maxPages: 3
@@ -231,7 +231,7 @@ export class MailService {
       importance: email.importance || 'normal'
     };
 
-    await graphClientService.makeRequest('/me/sendMail', {
+    await graphClientService.makeRequest('me/sendMail', {
       method: 'POST',
       body: { message }
     });
