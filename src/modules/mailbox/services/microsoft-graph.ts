@@ -1,75 +1,96 @@
-import { 
-  GraphAuthService, 
-  MailService, 
-  GraphClientService 
-} from '@/shared/services/microsoft-graph';
-
-// Create singleton instances
-const graphAuthService = new GraphAuthService();
-const mailService = new MailService();
-const graphClientService = new GraphClientService();
+import { graphServiceManager } from '@/shared/services/microsoft-graph/GraphServiceManager';
 import { Message, MailFolder } from '@microsoft/microsoft-graph-types';
 import { AccountInfo } from '@azure/msal-browser';
 
 // Legacy wrapper for backward compatibility with existing mailbox components
 export class MicrosoftGraphService {
+  private initialized = false;
+
   constructor() {
-    // Initialize the centralized auth service
-    graphAuthService.initialize();
+    // Don't initialize in constructor to avoid issues
   }
 
   async initialize(): Promise<void> {
-    await graphAuthService.initialize();
+    if (!this.initialized) {
+      console.log('🔧 Initializing Microsoft Graph Service...');
+      await graphServiceManager.initialize();
+      this.initialized = true;
+      console.log('✅ Microsoft Graph Service initialized');
+    }
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initialized) {
+      console.log('⚠️ Service not initialized, initializing now...');
+      await this.initialize();
+    }
   }
 
   async signIn() {
-    return await graphAuthService.signIn();
+    await this.ensureInitialized();
+    return await graphServiceManager.signIn();
   }
 
   async signOut(): Promise<void> {
-    await graphAuthService.signOut();
+    await graphServiceManager.signOut();
   }
 
   async getAccessToken(): Promise<string | null> {
-    return await graphAuthService.getAccessToken();
+    await this.ensureInitialized();
+    return await graphServiceManager.auth.getAccessToken();
   }
 
   getCurrentAccount(): AccountInfo | null {
-    return graphAuthService.getCurrentAccount();
+    return graphServiceManager.auth.getCurrentAccount();
   }
 
   isSignedIn(): boolean {
-    return graphAuthService.isSignedIn();
+    return graphServiceManager.auth.isSignedIn();
   }
 
   // Delegate to centralized mail service
   async getEmails(folderId: string = 'inbox', top: number = 50): Promise<Message[]> {
-    return await mailService.getEmails(folderId, top);
+    console.log('🔍 MicrosoftGraphService.getEmails called', { folderId, top, isSignedIn: this.isSignedIn() });
+    await this.ensureInitialized();
+    console.log('✅ Service initialized, calling mail service');
+    try {
+      const result = await graphServiceManager.mail.getEmails(folderId, top);
+      console.log('📧 Got emails from mail service:', result.length);
+      return result;
+    } catch (error) {
+      console.error('❌ Error in mail service:', error);
+      throw error;
+    }
   }
 
   async getMailFolders(): Promise<MailFolder[]> {
-    return await mailService.getMailFolders();
+    await this.ensureInitialized();
+    return await graphServiceManager.mail.getMailFolders();
   }
 
   async markAsRead(messageId: string): Promise<void> {
-    await mailService.markAsRead(messageId);
+    await this.ensureInitialized();
+    await graphServiceManager.mail.markAsRead(messageId);
   }
 
   async setFlag(messageId: string, flagged: boolean): Promise<void> {
-    await mailService.setFlag(messageId, flagged);
+    await this.ensureInitialized();
+    await graphServiceManager.mail.setFlag(messageId, flagged);
   }
 
   async getUserProfile() {
-    return await graphClientService.getCurrentUser();
+    await this.ensureInitialized();
+    return await graphServiceManager.getCurrentUser();
   }
 
   async handleRedirectPromise() {
-    return await graphAuthService.handleRedirectPromise();
+    await this.ensureInitialized();
+    return await graphServiceManager.auth.handleRedirectPromise();
   }
 
   // Legacy property for backward compatibility
   get msalInstance() {
-    return (graphAuthService as any).msalInstance;
+    return graphServiceManager.auth.msalInstance_DEPRECATED;
   }
 
   // Legacy method for backward compatibility

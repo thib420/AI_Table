@@ -3,18 +3,27 @@ import { GraphAuthService } from './GraphAuthService';
 import { GraphServiceConfig } from '../types';
 
 export class GraphClientService {
+  private static instance: GraphClientService;
   private client: Client | null = null;
   private config: GraphServiceConfig;
   private authService: GraphAuthService;
 
-  constructor(config?: Partial<GraphServiceConfig>) {
+  private constructor(config?: Partial<GraphServiceConfig>) {
     this.config = {
       scopes: ['User.Read'],
       baseUrl: 'https://graph.microsoft.com',
       version: 'v1.0',
       ...config
     };
-    this.authService = new GraphAuthService();
+    this.authService = GraphAuthService.getInstance();
+  }
+
+  // Singleton pattern
+  public static getInstance(config?: Partial<GraphServiceConfig>): GraphClientService {
+    if (!GraphClientService.instance) {
+      GraphClientService.instance = new GraphClientService(config);
+    }
+    return GraphClientService.instance;
   }
 
   async getClient(): Promise<Client> {
@@ -156,5 +165,5 @@ export class GraphClientService {
   }
 }
 
-// Singleton instance
-export const graphClientService = new GraphClientService(); 
+// Export singleton instance
+export const graphClientService = GraphClientService.getInstance(); 

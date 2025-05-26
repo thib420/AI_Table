@@ -30,19 +30,35 @@ const DEFAULT_SCOPES = [
 ];
 
 export class GraphAuthService {
+  private static instance: GraphAuthService;
   private msalInstance: PublicClientApplication;
   private currentScopes: string[];
+  private initialized = false;
 
-  constructor(scopes: string[] = DEFAULT_SCOPES) {
+  private constructor(scopes: string[] = DEFAULT_SCOPES) {
     this.msalInstance = new PublicClientApplication(msalConfig);
     this.currentScopes = scopes;
   }
 
+  // Singleton pattern
+  public static getInstance(scopes?: string[]): GraphAuthService {
+    if (!GraphAuthService.instance) {
+      GraphAuthService.instance = new GraphAuthService(scopes);
+    }
+    return GraphAuthService.instance;
+  }
+
   async initialize(): Promise<void> {
-    await this.msalInstance.initialize();
+    if (!this.initialized) {
+      console.log('🔧 Initializing GraphAuthService...');
+      await this.msalInstance.initialize();
+      this.initialized = true;
+      console.log('✅ GraphAuthService initialized');
+    }
   }
 
   async signIn(additionalScopes?: string[]): Promise<AuthenticationResult | null> {
+    await this.initialize();
     const scopes = additionalScopes ? [...this.currentScopes, ...additionalScopes] : this.currentScopes;
     
     try {
@@ -55,6 +71,7 @@ export class GraphAuthService {
   }
 
   async signOut(): Promise<void> {
+    await this.initialize();
     const accounts = this.msalInstance.getAllAccounts();
     if (accounts.length > 0) {
       await this.msalInstance.logoutRedirect({
@@ -64,6 +81,7 @@ export class GraphAuthService {
   }
 
   async getAccessToken(additionalScopes?: string[]): Promise<string | null> {
+    await this.initialize();
     const accounts = this.msalInstance.getAllAccounts();
     if (accounts.length === 0) {
       return null;
@@ -100,6 +118,7 @@ export class GraphAuthService {
   }
 
   async handleRedirectPromise(): Promise<AuthenticationResult | null> {
+    await this.initialize();
     return await this.msalInstance.handleRedirectPromise();
   }
 
@@ -113,7 +132,13 @@ export class GraphAuthService {
   async requestAdditionalScopes(scopes: string[]): Promise<string | null> {
     return await this.getAccessToken(scopes);
   }
+
+  // Expose MSAL instance for backward compatibility
+  get msalInstance_DEPRECATED() {
+    console.warn('⚠️ Direct access to msalInstance is deprecated. Use GraphAuthService methods instead.');
+    return this.msalInstance;
+  }
 }
 
-// Singleton instance
-export const graphAuthService = new GraphAuthService(); 
+// Export singleton instance
+export const graphAuthService = GraphAuthService.getInstance(); 

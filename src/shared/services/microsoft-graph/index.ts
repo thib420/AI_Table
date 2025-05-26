@@ -1,5 +1,8 @@
 // Microsoft Graph Services - Centralized API Management
 
+// Service Manager (Recommended)
+export { GraphServiceManager, graphServiceManager } from './GraphServiceManager';
+
 // Core Authentication & Client
 export { GraphAuthService, graphAuthService } from './core/GraphAuthService';
 export { GraphClientService, graphClientService } from './core/GraphClientService';

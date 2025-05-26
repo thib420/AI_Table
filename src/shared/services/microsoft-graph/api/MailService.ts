@@ -2,7 +2,17 @@ import { graphClientService } from '../core/GraphClientService';
 import { Message, MailFolder } from '@microsoft/microsoft-graph-types';
 
 export class MailService {
+  private static instance: MailService;
   private readonly baseEndpoint = '/me/messages';
+
+  private constructor() {}
+
+  public static getInstance(): MailService {
+    if (!MailService.instance) {
+      MailService.instance = new MailService();
+    }
+    return MailService.instance;
+  }
 
   // Get emails from a specific folder
   async getEmails(folderId: string = 'inbox', top: number = 50): Promise<Message[]> {
@@ -251,4 +261,4 @@ export class MailService {
   }
 }
 
-export const mailService = new MailService(); 
+export const mailService = MailService.getInstance(); 

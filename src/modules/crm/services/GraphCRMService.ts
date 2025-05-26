@@ -1,19 +1,8 @@
 import { 
-  ContactsService, 
-  PeopleService, 
-  UsersService, 
-  MailService, 
-  CalendarService,
+  graphServiceManager,
   graphDataTransformers,
   withRetry
 } from '@/shared/services/microsoft-graph';
-
-// Create service instances
-const contactsService = new ContactsService();
-const peopleService = new PeopleService();
-const usersService = new UsersService();
-const mailService = new MailService();
-const calendarService = new CalendarService();
 import { CRMContact, CRMCompany } from '@/shared/services/microsoft-graph/types';
 import { Contact, Deal, Company } from '../types';
 
@@ -21,10 +10,11 @@ export class GraphCRMService {
   // Get all CRM contacts from multiple Graph sources
   async getAllContacts(): Promise<Contact[]> {
     try {
+      await graphServiceManager.initialize();
       const [graphContacts, people, users] = await Promise.allSettled([
-        withRetry(() => contactsService.getContacts()),
-        withRetry(() => peopleService.getRelevantPeople({ top: 100 })),
-        withRetry(() => usersService.getUsers({ top: 50 }))
+        withRetry(() => graphServiceManager.contacts.getContacts()),
+        withRetry(() => graphServiceManager.people?.getRelevantPeople({ top: 100 }) || Promise.resolve([])),
+        withRetry(() => graphServiceManager.users?.getUsers({ top: 50 }) || Promise.resolve([]))
       ]);
 
       let allCRMContacts: CRMContact[] = [];
@@ -154,10 +144,11 @@ export class GraphCRMService {
   // Get deals (derived from email and calendar interactions)
   async getDeals(): Promise<Deal[]> {
     try {
+      await graphServiceManager.initialize();
       // Get recent emails and meetings to derive deal information
       const [recentEmails, upcomingMeetings] = await Promise.allSettled([
-        withRetry(() => mailService.getRecentEmails(30)),
-        withRetry(() => calendarService.getUpcomingEvents(30))
+        withRetry(() => graphServiceManager.mail.getRecentEmails(30)),
+        withRetry(() => graphServiceManager.calendar?.getUpcomingEvents(30) || Promise.resolve([]))
       ]);
 
       const deals: Deal[] = [];
@@ -337,7 +328,8 @@ export class GraphCRMService {
 
   private async getCurrentUserDomain(): Promise<string> {
     try {
-      const currentUser = await usersService.getCurrentUser();
+      await graphServiceManager.initialize();
+      const currentUser = await graphServiceManager.users?.getCurrentUser() || await graphServiceManager.getCurrentUser();
       const email = currentUser.mail || currentUser.userPrincipalName || '';
       return email.split('@')[1] || '';
     } catch {

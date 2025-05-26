@@ -155,7 +155,13 @@ export function useMailbox() {
       
     } catch (error) {
       console.error('Error loading Microsoft emails:', error);
-      setError('Failed to load emails from Microsoft. Using offline mode.');
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        isSignedIn,
+        authLoading
+      });
+      setError(`Failed to load emails from Microsoft: ${error instanceof Error ? error.message : 'Unknown error'}. Using offline mode.`);
       
       // Fallback to mock data on error
       const processedMockEmails = mockEmails.map(email => ({

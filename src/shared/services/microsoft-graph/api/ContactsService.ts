@@ -2,7 +2,17 @@ import { graphClientService } from '../core/GraphClientService';
 import { GraphContact, ContactsSearchOptions, GraphApiResponse } from '../types';
 
 export class ContactsService {
+  private static instance: ContactsService;
   private readonly baseEndpoint = '/me/contacts';
+
+  private constructor() {}
+
+  public static getInstance(): ContactsService {
+    if (!ContactsService.instance) {
+      ContactsService.instance = new ContactsService();
+    }
+    return ContactsService.instance;
+  }
 
   // Get all contacts
   async getContacts(options?: ContactsSearchOptions): Promise<GraphContact[]> {
@@ -127,4 +137,4 @@ export class ContactsService {
   }
 }
 
-export const contactsService = new ContactsService(); 
+export const contactsService = ContactsService.getInstance(); 
