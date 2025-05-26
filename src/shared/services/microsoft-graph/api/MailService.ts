@@ -25,6 +25,11 @@ export class MailService {
     console.log(`📧 Using endpoint: ${endpoint}`);
 
     try {
+      // Check if we're authenticated first
+      if (!graphClientService.isAuthenticated()) {
+        throw new Error('Not authenticated - please sign in to Microsoft Graph');
+      }
+
       const result = await graphClientService.makePaginatedRequest<Message>(endpoint, {
         select: [
           'id', 'subject', 'bodyPreview', 'sender', 'receivedDateTime', 
@@ -40,6 +45,19 @@ export class MailService {
       return result;
     } catch (error) {
       console.error(`❌ MailService.getEmails failed for endpoint ${endpoint}:`, error);
+      
+      // Provide more specific error information
+      if (error instanceof Error) {
+        if (error.message.includes('Resource not found for the segment')) {
+          console.error('🔍 This error suggests an issue with the API endpoint construction');
+          console.error('🔍 Check that the Graph client is properly configured');
+        } else if (error.message.includes('Unauthorized') || error.message.includes('InvalidAuthenticationToken')) {
+          console.error('🔍 Authentication failed - user may need to sign in again');
+        } else if (error.message.includes('Forbidden') || error.message.includes('InsufficientPermissions')) {
+          console.error('🔍 Insufficient permissions - check Azure app registration scopes');
+        }
+      }
+      
       throw error;
     }
   }

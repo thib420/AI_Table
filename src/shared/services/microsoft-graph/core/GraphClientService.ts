@@ -50,7 +50,7 @@ export class GraphClientService {
       authProvider: (done) => {
         done(null, token);
       },
-      baseUrl: this.config.baseUrl,
+      baseUrl: `${this.config.baseUrl}/${this.config.version}`,
     });
   }
 
@@ -73,13 +73,10 @@ export class GraphClientService {
   }): Promise<T> {
     const client = await this.getClient();
     
-    // Ensure endpoint starts with version if it doesn't already
+    // Normalize endpoint - Microsoft Graph client handles versioning automatically
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    const versionedEndpoint = normalizedEndpoint.startsWith(`/${this.config.version}`) 
-      ? normalizedEndpoint 
-      : `/${this.config.version}${normalizedEndpoint}`;
     
-    let request = client.api(versionedEndpoint);
+    let request = client.api(normalizedEndpoint);
 
     // Apply query parameters
     if (options?.select) {
@@ -110,7 +107,7 @@ export class GraphClientService {
 
     // Execute request based on method
     try {
-      console.log(`🔍 Making Graph API request to: ${versionedEndpoint}`);
+      console.log(`🔍 Making Graph API request to: ${normalizedEndpoint}`);
       switch (options?.method || 'GET') {
         case 'GET':
           return await request.get();
@@ -124,7 +121,7 @@ export class GraphClientService {
           throw new Error(`Unsupported HTTP method: ${options?.method}`);
       }
     } catch (error) {
-      console.error(`❌ Graph API request failed for ${versionedEndpoint}:`, error);
+      console.error(`❌ Graph API request failed for ${normalizedEndpoint}:`, error);
       throw error;
     }
   }
