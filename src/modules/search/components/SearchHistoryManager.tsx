@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/shared/lib/supabase/client';
+import { testSupabaseConnection } from '@/shared/lib/supabase/utils';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { ExaResultItem } from '@/shared/types/exa';
 import { ColumnDef, EnrichedExaResultItem } from '../services/ai-column-generator';
@@ -32,8 +33,34 @@ export interface CompleteSearchState {
 export const useSearchHistory = () => {
   const { user } = useAuth();
 
+  // Test Supabase connection on first use
+  const testConnection = useCallback(async (): Promise<boolean> => {
+    try {
+      const result = await testSupabaseConnection();
+      if (!result.isConnected) {
+        console.error('Supabase connection failed:', result.error);
+        return false;
+      }
+      if (!result.hasValidSchema) {
+        console.error('Supabase schema validation failed:', result.error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error testing Supabase connection:', error);
+      return false;
+    }
+  }, []);
+
   const fetchSavedSearches = useCallback(async (): Promise<SavedSearchItem[]> => {
     if (!user) {
+      return [];
+    }
+
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      console.warn('Supabase connection failed, returning empty results');
       return [];
     }
 
@@ -54,7 +81,7 @@ export const useSearchHistory = () => {
       console.error('Error in fetchSavedSearches:', error);
       return [];
     }
-  }, [user]);
+  }, [user, testConnection]);
 
   const saveSearch = useCallback(async (query: string, results: ExaResultItem[]): Promise<boolean> => {
     if (!user) {
@@ -62,12 +89,29 @@ export const useSearchHistory = () => {
       return false;
     }
 
+    if (!query.trim()) {
+      console.error("Query is empty");
+      return false;
+    }
+
+    if (!results || results.length === 0) {
+      console.error("No results to save");
+      return false;
+    }
+
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      console.error('Cannot save search: Supabase connection failed');
+      return false;
+    }
+
     try {
-      const { error } = await supabase()
+      const { error } = await supabase
         .from('saved_searches')
         .insert({
           user_id: user.id,
-          query_text: query,
+          query_text: query.trim(),
           search_results_data: results,
           saved_at: new Date().toISOString()
         });
@@ -83,41 +127,76 @@ export const useSearchHistory = () => {
       console.error('Exception in saveSearch:', err);
       return false;
     }
-  }, [user]);
+  }, [user, testConnection]);
 
   const saveCompleteSearch = useCallback(async (searchState: CompleteSearchState): Promise<boolean> => {
-    if (!user || !searchState.query.trim()) return false;
+    if (!user || !searchState.query.trim()) {
+      console.error("Invalid user or query for saving complete search");
+      return false;
+    }
+
+    if (!searchState.originalResults || searchState.originalResults.length === 0) {
+      console.error("No original results to save");
+      return false;
+    }
+
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      console.error('Cannot save complete search: Supabase connection failed');
+      return false;
+    }
 
     try {
+      const searchData = {
+        user_id: user.id,
+        query_text: searchState.query.trim(),
+        search_results_data: searchState.originalResults,
+        enriched_results_data: searchState.enrichedResults || [],
+        column_configuration: searchState.columnConfiguration || [],
+        search_metadata: {
+          saved_at: new Date().toISOString(),
+          result_count: searchState.originalResults.length,
+          column_count: searchState.columnConfiguration?.length || 0,
+          enriched_columns_count: searchState.columnConfiguration?.filter(col => col.type === 'ai-generated').length || 0,
+          last_enrichment_date: new Date().toISOString()
+        }
+      };
+
       const { error } = await supabase
         .from('saved_searches')
-        .insert({
-          user_id: user.id,
-          query_text: searchState.query,
-          search_results_data: searchState.originalResults,
-          enriched_results_data: searchState.enrichedResults,
-          column_configuration: searchState.columnConfiguration,
-          search_metadata: {
-            saved_at: new Date().toISOString(),
-            result_count: searchState.originalResults.length,
-            column_count: searchState.columnConfiguration.length
-          }
-        });
+        .insert(searchData);
 
       if (error) {
-        console.error('Error saving search:', error);
+        console.error('Error saving complete search:', error);
         return false;
       }
 
+      console.log('Complete search saved successfully');
       return true;
     } catch (error) {
       console.error('Error in saveCompleteSearch:', error);
       return false;
     }
-  }, [user]);
+  }, [user, testConnection]);
 
   const deleteSavedSearch = useCallback(async (id: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      console.error("No user logged in for delete operation");
+      return false;
+    }
+
+    if (!id) {
+      console.error("No search ID provided for deletion");
+      return false;
+    }
+
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      console.error('Cannot delete search: Supabase connection failed');
+      return false;
+    }
 
     try {
       const { error } = await supabase
@@ -137,12 +216,13 @@ export const useSearchHistory = () => {
       console.error('Error in deleteSavedSearch:', error);
       return false;
     }
-  }, [user]);
+  }, [user, testConnection]);
 
   return {
     fetchSavedSearches,
     saveSearch,
     saveCompleteSearch,
-    deleteSavedSearch
+    deleteSavedSearch,
+    testConnection
   };
 }; 

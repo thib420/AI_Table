@@ -1,4 +1,4 @@
-import { ExaResultItem } from '@/types/exa';
+import { ExaResultItem } from '@/shared/types/exa';
 
 export interface ColumnDef {
   id: string;
