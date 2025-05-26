@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Message } from '@microsoft/microsoft-graph-types';
 import { microsoftGraphService } from '../../services/microsoft-graph';
 import { useMicrosoftAuth } from '../../services/MicrosoftAuthContext';
+import { contactSyncService } from '../../services/ContactSyncService';
 
 export interface Email {
   id: string;
@@ -127,6 +128,14 @@ export function useMailbox() {
         }));
         setAllEmails(processedMockEmails);
         setEmails(processedMockEmails);
+        
+        // Sync mock contacts to CRM
+        if (processedMockEmails.length > 0) {
+          console.log('🔄 useMailbox: Starting automatic contact sync for initial mock data...');
+          contactSyncService.syncContactsInBackground(processedMockEmails).catch(error => {
+            console.error('❌ useMailbox: Initial mock data contact sync failed:', error);
+          });
+        }
       }
     };
 
@@ -153,6 +162,14 @@ export function useMailbox() {
       
       setAllEmails(combinedEmails);
       
+      // Automatically sync contacts from emails to CRM in the background
+      if (combinedEmails.length > 0) {
+        console.log('🔄 useMailbox: Starting automatic contact sync to CRM...');
+        contactSyncService.syncContactsInBackground(combinedEmails).catch(error => {
+          console.error('❌ useMailbox: Background contact sync failed:', error);
+        });
+      }
+      
     } catch (error) {
       console.error('Error loading Microsoft emails:', error);
       console.error('Error details:', {
@@ -170,6 +187,14 @@ export function useMailbox() {
         displayTime: formatTimestamp(email.timestamp),
       }));
       setAllEmails(processedMockEmails);
+      
+      // Sync mock contacts to CRM as well
+      if (processedMockEmails.length > 0) {
+        console.log('🔄 useMailbox: Starting automatic contact sync for mock data...');
+        contactSyncService.syncContactsInBackground(processedMockEmails).catch(error => {
+          console.error('❌ useMailbox: Mock data contact sync failed:', error);
+        });
+      }
     } finally {
       setIsLoading(false);
     }

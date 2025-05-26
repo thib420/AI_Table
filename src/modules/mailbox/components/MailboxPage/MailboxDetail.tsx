@@ -24,20 +24,20 @@ export function MailboxDetail({ email, onViewCustomer }: MailboxDetailProps) {
     );
   }
   return (
-    <>
-      <div className="p-4 border-b bg-muted/10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
+    <div className="flex flex-col h-full min-w-0 overflow-hidden">
+      <div className="p-4 border-b bg-muted/10 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
+            <Avatar className="h-10 w-10 flex-shrink-0">
               <AvatarImage src={email.avatarUrl} alt={email.sender} />
               <AvatarFallback>{email.sender.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>
-            <div>
-              <p className="font-medium">{email.sender}</p>
-              <p className="text-sm text-muted-foreground">{email.senderEmail}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium truncate">{email.sender}</p>
+              <p className="text-sm text-muted-foreground truncate">{email.senderEmail}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-shrink-0">
             <Button variant="ghost" size="sm">
               <Reply className="h-4 w-4" />
             </Button>
@@ -52,8 +52,8 @@ export function MailboxDetail({ email, onViewCustomer }: MailboxDetailProps) {
             </Button>
           </div>
         </div>
-        <h2 className="text-lg font-semibold">{email.subject}</h2>
-        <div className="flex items-center justify-between mt-1">
+        <h2 className="text-lg font-semibold break-words pr-4">{email.subject}</h2>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mt-1">
           <p className="text-sm text-muted-foreground">
             {email.displayTime}
           </p>
@@ -70,18 +70,18 @@ export function MailboxDetail({ email, onViewCustomer }: MailboxDetailProps) {
           )}
         </div>
       </div>
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="prose max-w-none prose-sm">
-          <div className="bg-muted/30 rounded-lg p-4 mb-4">
+      <div className="flex-1 overflow-auto">
+        <div className="p-6 max-w-full">
+          <div className="bg-muted/30 rounded-lg p-4 mb-4 max-w-full overflow-hidden">
             <p className="text-sm text-muted-foreground mb-2">Email Preview:</p>
-            <p className="leading-relaxed">{email.preview}</p>
+            <p className="leading-relaxed break-words whitespace-pre-wrap max-w-full overflow-wrap-anywhere">{email.preview}</p>
           </div>
-          <div className="space-y-4">
-            <p className="leading-relaxed">This is a preview of the email content. In a real implementation, this would show the full email body with proper formatting, attachments, and embedded content.</p>
-            <p className="leading-relaxed">The email content would be displayed here with full HTML rendering, inline images, and proper text formatting. This area now has more space to display longer email content comfortably.</p>
+          <div className="space-y-4 max-w-full">
+            <p className="leading-relaxed break-words overflow-wrap-anywhere max-w-full">This is a preview of the email content. In a real implementation, this would show the full email body with proper formatting, attachments, and embedded content.</p>
+            <p className="leading-relaxed break-words overflow-wrap-anywhere max-w-full">The email content would be displayed here with full HTML rendering, inline images, and proper text formatting. This area now has more space to display longer email content comfortably.</p>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 } 

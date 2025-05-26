@@ -14,8 +14,8 @@ import {
   Settings,
   Building2,
   Inbox,
-  PlusCircle,
-  TrendingUp
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -81,7 +81,8 @@ const mockCustomers = [
 
 export function MainLayout({ user, children, currentModule, onModuleChange, onLogout, onCustomerView }: MainLayoutProps) {
   const { theme, setTheme } = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar
+  const [sidebarExpanded, setSidebarExpanded] = useState(false); // Desktop sidebar expansion
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<typeof mockCustomers>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -267,13 +268,32 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
         {/* Sidebar Navigation */}
         <aside className={`
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          fixed inset-y-0 left-0 z-40 w-72 bg-background border-r transition-transform duration-200 ease-in-out
+          fixed inset-y-0 left-0 z-40 bg-background border-r transition-all duration-200 ease-in-out
           lg:relative lg:translate-x-0 top-16 lg:top-0 lg:flex-shrink-0
+          ${sidebarExpanded ? 'w-72' : 'w-16'}
         `}>
           <div className="flex h-full flex-col">
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {/* Toggle Button */}
+            <div className={`flex ${sidebarExpanded ? 'justify-end' : 'justify-center'} p-2 border-b`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarExpanded(!sidebarExpanded)}
+                className="h-8 w-8"
+              >
+                {sidebarExpanded ? (
+                  <ChevronLeft className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+
+            <div className={`flex-1 overflow-y-auto ${sidebarExpanded ? 'p-6' : 'p-2'} space-y-4`}>
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-muted-foreground">Business Modules</h3>
+                {sidebarExpanded && (
+                  <h3 className="text-sm font-medium text-muted-foreground">Business Modules</h3>
+                )}
                 <div className="space-y-1">
                   {navigationItems.map((item) => {
                     const isActive = currentModule === item.id;
@@ -281,7 +301,7 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
                       <Button
                         key={item.id}
                         variant={isActive ? "default" : "ghost"}
-                        className={`w-full justify-start h-12 ${
+                        className={`w-full ${sidebarExpanded ? 'justify-start h-12' : 'justify-center h-10'} ${
                           isActive 
                             ? `${item.bgColor} ${item.color} border ${item.borderColor} hover:${item.bgColor}` 
                             : 'hover:bg-muted/50'
@@ -290,39 +310,29 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
                           onModuleChange(item.id);
                           setSidebarOpen(false);
                         }}
+                        title={!sidebarExpanded ? item.label : undefined}
                       >
-                        <item.icon className={`h-5 w-5 mr-3 ${isActive ? item.color : 'text-muted-foreground'}`} />
-                        <div className="flex-1 text-left">
-                          <div className={`font-medium ${isActive ? item.color : ''}`}>
-                            {item.label}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {item.description}
-                          </div>
-                        </div>
-                        {item.id === 'crm' && (
-                          <Badge variant="secondary" className="ml-auto">
-                            New
-                          </Badge>
+                        <item.icon className={`h-5 w-5 ${sidebarExpanded ? 'mr-3' : ''} ${isActive ? item.color : 'text-muted-foreground'}`} />
+                        {sidebarExpanded && (
+                          <>
+                            <div className="flex-1 text-left">
+                              <div className={`font-medium ${isActive ? item.color : ''}`}>
+                                {item.label}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {item.description}
+                              </div>
+                            </div>
+                            {item.id === 'crm' && (
+                              <Badge variant="secondary" className="ml-auto">
+                                New
+                              </Badge>
+                            )}
+                          </>
                         )}
                       </Button>
                     );
                   })}
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="space-y-2 pt-4 border-t">
-                <h3 className="text-sm font-medium text-muted-foreground">Quick Actions</h3>
-                <div className="space-y-1">
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => onModuleChange('crm')}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    New Contact
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start">
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Analytics
-                  </Button>
                 </div>
               </div>
             </div>

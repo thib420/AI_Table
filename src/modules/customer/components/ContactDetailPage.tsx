@@ -35,7 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { graphCRMService } from '@/modules/crm/services/GraphCRMService';
 import { customer360Service } from '@/modules/crm/services/Customer360Service';
 import { Contact } from '@/modules/crm/types';
@@ -263,189 +263,167 @@ export function ContactDetailPage({ contactId, onBack }: ContactDetailPageProps)
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="border-b bg-background">
-        <div className="flex h-12 items-center px-6 space-x-6">
-          {[
-            { id: 'overview', label: 'Overview', icon: User },
-            { id: 'activities', label: 'Activities', icon: Activity },
-            { id: 'deals', label: 'Deals', icon: Target },
-            { id: 'orders', label: 'Orders', icon: ShoppingCart },
-            { id: 'documents', label: 'Documents', icon: FileText },
-            { id: 'emails', label: 'Emails', icon: Mail }
-          ].map((tab) => (
-            <Button
-              key={tab.id}
-              variant={tab.id === 'overview' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => {}}
-              className="flex items-center space-x-2"
-            >
-              <tab.icon className="h-4 w-4" />
-              <span>{tab.label}</span>
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <Tabs defaultValue="timeline" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            <TabsTrigger value="emails">Emails</TabsTrigger>
-            <TabsTrigger value="meetings">Meetings</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="timeline" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
+      {/* Main Content - Unified Dashboard */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Unified Dashboard - All Content in One View */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Activity Timeline */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Activity className="h-5 w-5" />
+                <span>Recent Activity</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {customerProfile?.interactions && customerProfile.interactions.length > 0 ? (
-                  <div className="space-y-4">
-                    {customerProfile.interactions.slice(0, 10).map((interaction: CustomerInteraction) => {
-                      const IconComponent = getInteractionIcon(interaction.type);
-                      return (
-                        <div key={interaction.id} className="flex space-x-4">
-                          <div className={`p-2 rounded-full ${getInteractionColor(interaction.type)}`}>
-                            <IconComponent className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <p className="font-medium">{interaction.title}</p>
-                              <span className="text-sm text-muted-foreground">
+                  customerProfile.interactions.slice(0, 10).map((interaction: CustomerInteraction) => {
+                    const IconComponent = getInteractionIcon(interaction.type);
+                    return (
+                      <div key={interaction.id} className="flex items-start space-x-3 p-3 rounded-lg border">
+                        <div className={`p-2 rounded-full ${getInteractionColor(interaction.type)}`}>
+                          <IconComponent className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium truncate">{interaction.title}</h4>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="outline" className="text-xs">
+                                {interaction.type}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
                                 {formatTimestamp(interaction.date)}
                               </span>
                             </div>
-                            <p className="text-sm text-muted-foreground">{interaction.description}</p>
-                            {interaction.direction && (
-                              <Badge variant="outline" className="mt-1">
-                                {interaction.direction}
-                              </Badge>
-                            )}
                           </div>
+                          <p className="text-sm text-muted-foreground mt-1 truncate">
+                            {interaction.description}
+                          </p>
+                          {interaction.direction && (
+                            <Badge variant="outline" className="mt-2 text-xs">
+                              {interaction.direction}
+                            </Badge>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })
                 ) : (
                   <p className="text-muted-foreground text-center py-8">
                     No interactions found. Data is automatically gathered from your Microsoft Graph emails and calendar.
                   </p>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="emails" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Email Communications</CardTitle>
-              </CardHeader>
-              <CardContent>
+          {/* Email Communications */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Mail className="h-5 w-5" />
+                <span>Recent Emails ({customerProfile?.emails?.length || 0})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {customerProfile?.emails && customerProfile.emails.length > 0 ? (
-                  <div className="space-y-4">
-                    {customerProfile.emails.map((email) => (
-                      <div key={email.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium">{email.subject}</h4>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="outline">{email.direction}</Badge>
-                            <span className="text-sm text-muted-foreground">
-                              {formatTimestamp(email.receivedDateTime)}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{email.preview}</p>
-                        {email.hasAttachments && (
-                          <Badge variant="secondary" className="mt-2">
-                            Has Attachments
+                  customerProfile.emails.slice(0, 8).map((email) => (
+                    <div key={email.id} className="p-3 rounded-lg border">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium truncate">{email.subject}</h4>
+                        <div className="flex items-center space-x-2">
+                          {email.hasAttachments && <Paperclip className="h-4 w-4" />}
+                          <Badge variant={email.direction === 'inbound' ? 'default' : 'secondary'} className="text-xs">
+                            {email.direction}
                           </Badge>
-                        )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{email.preview}</p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>From: {email.sender}</span>
+                        <span>{formatTimestamp(email.receivedDateTime)}</span>
+                      </div>
+                    </div>
+                  ))
                 ) : (
                   <p className="text-muted-foreground text-center py-8">
                     No emails found. Email data is automatically synchronized from your Microsoft Graph mailbox.
                   </p>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="meetings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Meetings & Calls</CardTitle>
-              </CardHeader>
-              <CardContent>
+          {/* Meetings & Calls */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5" />
+                <span>Recent Meetings ({customerProfile?.meetings?.length || 0})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {customerProfile?.meetings && customerProfile.meetings.length > 0 ? (
-                  <div className="space-y-4">
-                    {customerProfile.meetings.map((meeting) => (
-                      <div key={meeting.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium">{meeting.subject}</h4>
-                          <span className="text-sm text-muted-foreground">
-                            {formatTimestamp(meeting.start)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {meeting.attendees.length} attendees
-                        </p>
-                        {meeting.isOnline && (
-                          <Badge variant="secondary" className="mt-2">
-                            Online Meeting
-                          </Badge>
-                        )}
+                  customerProfile.meetings.slice(0, 6).map((meeting) => (
+                    <div key={meeting.id} className="p-3 rounded-lg border">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium truncate">{meeting.subject}</h4>
+                        <Badge variant="secondary" className="text-xs">
+                          {meeting.isOnline ? 'Online' : 'In-person'}
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>📅 {formatTimestamp(meeting.start)}</p>
+                        <p>👥 {meeting.attendees.length} attendees</p>
+                        {meeting.location && <p>📍 {meeting.location}</p>}
+                      </div>
+                    </div>
+                  ))
                 ) : (
                   <p className="text-muted-foreground text-center py-8">
                     No meetings found. Meeting data is automatically synchronized from your Microsoft Graph calendar.
                   </p>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="documents" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Shared Documents</CardTitle>
-              </CardHeader>
-              <CardContent>
+          {/* Shared Documents */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <FileText className="h-5 w-5" />
+                <span>Shared Documents ({customerProfile?.documents?.length || 0})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {customerProfile?.documents && customerProfile.documents.length > 0 ? (
-                  <div className="space-y-4">
-                    {customerProfile.documents.map((document) => (
-                      <div key={document.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium">{document.name}</h4>
-                          <span className="text-sm text-muted-foreground">
-                            {formatTimestamp(document.lastModified)}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <span>{document.type.toUpperCase()}</span>
-                          <span>{document.size}</span>
-                          <span>Shared by {document.sharedBy}</span>
-                        </div>
+                  customerProfile.documents.slice(0, 6).map((document) => (
+                    <div key={document.id} className="p-3 rounded-lg border">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium truncate">{document.name}</h4>
+                        <Badge variant="outline" className="text-xs">{document.type.toUpperCase()}</Badge>
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>👤 Shared by: {document.sharedBy}</p>
+                        <p>📅 Modified: {formatTimestamp(document.lastModified)}</p>
+                        <p>💾 Size: {document.size}</p>
+                      </div>
+                    </div>
+                  ))
                 ) : (
                   <p className="text-muted-foreground text-center py-8">
                     No shared documents found. Document data would be synchronized from OneDrive/SharePoint.
                   </p>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

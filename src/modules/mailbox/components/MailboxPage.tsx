@@ -256,10 +256,13 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
             inboxUnread={allEmails.filter(e => e.folder === 'inbox' && !e.isRead).length}
             starredCount={allEmails.filter(e => e.isStarred).length}
             onViewCRM={handleViewCRM}
+            onViewCustomer={onCustomerView ? handleViewCustomer : undefined}
+            selectedEmail={selectedEmail}
+            allEmails={allEmails}
           />
           {/* Email List */}
-          <div className="flex-1 flex min-h-0">
-            <div className="w-1/6 border-r flex flex-col">
+          <div className="flex-1 flex min-h-0 overflow-hidden">
+            <div className="w-80 border-r flex flex-col flex-shrink-0">
               <div className="p-4 border-b bg-muted/20">
                 <h3 className="font-medium text-sm">
                   {currentView === 'inbox' ? 'Inbox' : 
@@ -280,7 +283,7 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
               />
             </div>
             {/* Email Content */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 min-w-0">
               <MailboxDetail email={selectedEmail} onViewCustomer={onCustomerView ? handleViewCustomer : undefined} />
             </div>
           </div>

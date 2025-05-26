@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useMicrosoftAuth } from '@/modules/mailbox/services/MicrosoftAuthContext';
 import { 
@@ -288,151 +288,160 @@ export function Customer360View({ customerEmail, onBack }: Customer360ViewProps)
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="timeline" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            <TabsTrigger value="emails">Emails ({emails.length})</TabsTrigger>
-            <TabsTrigger value="meetings">Meetings ({meetings.length})</TabsTrigger>
-            <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="timeline" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Activity className="h-5 w-5" />
-                  <span>Interaction Timeline</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {timeline.slice(0, 20).map((interaction) => (
-                    <div key={interaction.id} className="flex items-start space-x-3 p-3 rounded-lg border">
-                      <div className="flex-shrink-0 mt-1">
-                        {getInteractionIcon(interaction.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium truncate">{interaction.title}</h4>
-                          <div className="flex items-center space-x-2">
-                            {getImportanceBadge(interaction.importance)}
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(interaction.date)}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1 truncate">
-                          {interaction.description}
-                        </p>
-                        {interaction.direction && (
-                          <Badge variant="outline" className="mt-2">
-                            {interaction.direction}
-                          </Badge>
-                        )}
-                      </div>
+        {/* Unified Dashboard - All Content in One View */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Activity Timeline */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Activity className="h-5 w-5" />
+                <span>Recent Activity</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {timeline.slice(0, 10).map((interaction) => (
+                  <div key={interaction.id} className="flex items-start space-x-3 p-3 rounded-lg border">
+                    <div className="flex-shrink-0 mt-1">
+                      {getInteractionIcon(interaction.type)}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="emails" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Email History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {emails.map((email) => (
-                    <div key={email.id} className="p-3 rounded-lg border">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium">{email.subject}</h4>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium truncate">{interaction.title}</h4>
                         <div className="flex items-center space-x-2">
-                          {email.hasAttachments && <Paperclip className="h-4 w-4" />}
-                          {getImportanceBadge(email.importance)}
-                          <Badge variant={email.direction === 'inbound' ? 'default' : 'secondary'}>
-                            {email.direction}
+                          <Badge variant="outline" className="text-xs">
+                            {interaction.type}
                           </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(interaction.date)}
+                          </span>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2">{email.preview}</p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>From: {email.sender}</span>
-                        <span>{formatDate(email.receivedDateTime)}</span>
+                      <p className="text-sm text-muted-foreground mt-1 truncate">
+                        {interaction.description}
+                      </p>
+                      {interaction.direction && (
+                        <Badge variant="outline" className="mt-2 text-xs">
+                          {interaction.direction}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {timeline.length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">
+                    No recent activity found.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Email History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Mail className="h-5 w-5" />
+                <span>Recent Emails ({emails.length})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {emails.slice(0, 8).map((email) => (
+                  <div key={email.id} className="p-3 rounded-lg border">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium truncate">{email.subject}</h4>
+                      <div className="flex items-center space-x-2">
+                        {email.hasAttachments && <Paperclip className="h-4 w-4" />}
+                        <Badge variant={email.direction === 'inbound' ? 'default' : 'secondary'} className="text-xs">
+                          {email.direction}
+                        </Badge>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{email.preview}</p>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>From: {email.sender}</span>
+                      <span>{formatDate(email.receivedDateTime)}</span>
+                    </div>
+                  </div>
+                ))}
+                {emails.length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">
+                    No emails found.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="meetings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Meeting History</CardTitle>
-              </CardHeader>
-              <CardContent>
+          {/* Meeting History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5" />
+                <span>Recent Meetings ({meetings.length})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {meetings.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
                     No meetings found. Meeting data will be available when calendar integration is enabled.
                   </p>
                 ) : (
-                  <div className="space-y-3">
-                    {meetings.map((meeting) => (
-                      <div key={meeting.id} className="p-3 rounded-lg border">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium">{meeting.subject}</h4>
-                          <Badge variant={meeting.status === 'completed' ? 'default' : 'secondary'}>
-                            {meeting.status}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground space-y-1">
-                          <p>{formatDate(meeting.start)} - {formatDate(meeting.end)}</p>
-                          {meeting.location && <p>Location: {meeting.location}</p>}
-                          <p>Attendees: {meeting.attendees.join(', ')}</p>
-                        </div>
+                  meetings.slice(0, 6).map((meeting) => (
+                    <div key={meeting.id} className="p-3 rounded-lg border">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium truncate">{meeting.subject}</h4>
+                        <Badge variant={meeting.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
+                          {meeting.status}
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>{formatDate(meeting.start)} - {formatDate(meeting.end)}</p>
+                        {meeting.location && <p>📍 {meeting.location}</p>}
+                        <p>👥 {meeting.attendees.length} attendees</p>
+                      </div>
+                    </div>
+                  ))
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="documents" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Shared Documents</CardTitle>
-              </CardHeader>
-              <CardContent>
+          {/* Shared Documents */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <FileText className="h-5 w-5" />
+                <span>Shared Documents ({documents.length})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {documents.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">
                     No shared documents found. Document data will be available when OneDrive/SharePoint integration is enabled.
                   </p>
                 ) : (
-                  <div className="space-y-3">
-                    {documents.map((document) => (
-                      <div key={document.id} className="p-3 rounded-lg border">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium">{document.name}</h4>
-                          <Badge variant="outline">{document.type}</Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground space-y-1">
-                          <p>Shared by: {document.sharedBy}</p>
-                          <p>Last modified: {formatDate(document.lastModified)}</p>
-                          <p>Size: {(document.size / 1024).toFixed(1)} KB</p>
-                        </div>
+                  documents.slice(0, 6).map((document) => (
+                    <div key={document.id} className="p-3 rounded-lg border">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium truncate">{document.name}</h4>
+                        <Badge variant="outline" className="text-xs">{document.type}</Badge>
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>👤 Shared by: {document.sharedBy}</p>
+                        <p>📅 Modified: {formatDate(document.lastModified)}</p>
+                        <p>💾 Size: {(document.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                  ))
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
