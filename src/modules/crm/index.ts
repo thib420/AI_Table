@@ -15,4 +15,4 @@ export type { Contact, Deal, Company, CRMView, CRMPageProps } from './types';
 
 // Utils
 export { getStatusColor, getStageColor, generateProfilePicture } from './utils/helpers';
-export { mockContacts, mockDeals, mockCompanies } from './utils/mockData'; 
+// Removed mock data exports - using only real data from Microsoft Graph now 

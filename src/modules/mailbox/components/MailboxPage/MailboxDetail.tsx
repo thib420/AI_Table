@@ -58,9 +58,14 @@ export function MailboxDetail({ email, onViewCustomer }: MailboxDetailProps) {
             {email.displayTime}
           </p>
           {onViewCustomer && (
-            <Button variant="outline" size="sm" onClick={() => onViewCustomer(email.senderEmail)}>
+            <Button variant="outline" size="sm" onClick={() => {
+              console.log('📧 MailboxDetail: See in CRM clicked');
+              console.log('📧 MailboxDetail: email.senderEmail:', email.senderEmail);
+              console.log('📧 MailboxDetail: calling onViewCustomer with:', email.senderEmail);
+              onViewCustomer(email.senderEmail);
+            }}>
               <Users className="h-4 w-4 mr-2" />
-              View Customer 360
+              See in CRM
             </Button>
           )}
         </div>

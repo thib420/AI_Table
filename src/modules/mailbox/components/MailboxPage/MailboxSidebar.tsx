@@ -12,10 +12,10 @@ interface MailboxSidebarProps {
   setSearchQuery: (q: string) => void;
   inboxUnread: number;
   starredCount: number;
-  onQuickCustomer?: () => void;
+  onViewCRM?: () => void;
 }
 
-export function MailboxSidebar({ currentView, setCurrentView, searchQuery, setSearchQuery, inboxUnread, starredCount, onQuickCustomer }: MailboxSidebarProps) {
+export function MailboxSidebar({ currentView, setCurrentView, searchQuery, setSearchQuery, inboxUnread, starredCount, onViewCRM }: MailboxSidebarProps) {
   return (
     <div className="w-56 border-r bg-muted/20 flex-shrink-0">
       <div className="p-4 space-y-2">
@@ -80,9 +80,9 @@ export function MailboxSidebar({ currentView, setCurrentView, searchQuery, setSe
             <Calendar className="h-4 w-4 mr-2" />
             Schedule Meeting
           </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start" onClick={onQuickCustomer}>
+          <Button variant="outline" size="sm" className="w-full justify-start" onClick={onViewCRM}>
             <Users className="h-4 w-4 mr-2" />
-            Add to CRM
+            See in CRM
           </Button>
         </div>
       </div>

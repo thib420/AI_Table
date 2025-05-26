@@ -59,23 +59,32 @@ export function CRMPage({ selectedCustomerId, onCustomerBack }: CRMPageProps = {
   };
 
   const renderView = () => {
+    console.log('🏢 CRMPage: renderView called with currentView:', currentView, 'customerEmail:', customerEmail);
     switch (currentView) {
       case 'dashboard':
+        console.log('🏢 CRMPage: Rendering DashboardView');
         return <DashboardView />;
       case 'contacts':
+        console.log('🏢 CRMPage: Rendering ContactsView');
         return <ContactsView onContactView={handleContactView} />;
       case 'deals':
+        console.log('🏢 CRMPage: Rendering DealsView');
         return <DealsView />;
       case 'companies':
+        console.log('🏢 CRMPage: Rendering CompaniesView');
         return <CompaniesView />;
       case 'customer-360':
+        console.log('🏢 CRMPage: Rendering Customer360View with email:', customerEmail);
         return customerEmail ? (
           <Customer360View 
             customerEmail={customerEmail} 
             onBack={handleBackToCRM} 
           />
-        ) : <DashboardView />;
+        ) : (
+          <DashboardView />
+        );
       default:
+        console.log('🏢 CRMPage: Rendering default DashboardView');
         return <DashboardView />;
     }
   };
@@ -83,6 +92,7 @@ export function CRMPage({ selectedCustomerId, onCustomerBack }: CRMPageProps = {
   // Handle Customer 360 view first (highest priority)
   if (currentView === 'customer-360' && customerEmail) {
     console.log('🏢 CRMPage: Rendering Customer360View with email:', customerEmail);
+    console.log('🏢 CRMPage: Current state:', { currentView, customerEmail, selectedContactId });
     return <Customer360View customerEmail={customerEmail} onBack={handleBackToCRM} />;
   }
 
@@ -94,46 +104,48 @@ export function CRMPage({ selectedCustomerId, onCustomerBack }: CRMPageProps = {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Sub-navigation */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 flex-shrink-0">
-        <div className="flex h-14 items-center px-6 space-x-6">
-          <Button
-            variant={currentView === 'dashboard' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setCurrentView('dashboard')}
-          >
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Dashboard
-          </Button>
-          <Button
-            variant={currentView === 'contacts' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setCurrentView('contacts')}
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Contacts
-          </Button>
-          <Button
-            variant={currentView === 'deals' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setCurrentView('deals')}
-          >
-            <Target className="h-4 w-4 mr-2" />
-            Deals
-          </Button>
-          <Button
-            variant={currentView === 'companies' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setCurrentView('companies')}
-          >
-            <Building2 className="h-4 w-4 mr-2" />
-            Companies
-          </Button>
+      {/* Sub-navigation - only show when not in Customer360View */}
+      {currentView !== 'customer-360' && (
+        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 flex-shrink-0">
+          <div className="flex h-14 items-center px-6 space-x-6">
+            <Button
+              variant={currentView === 'dashboard' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('dashboard')}
+            >
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
+            <Button
+              variant={currentView === 'contacts' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('contacts')}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Contacts
+            </Button>
+            <Button
+              variant={currentView === 'deals' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('deals')}
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Deals
+            </Button>
+            <Button
+              variant={currentView === 'companies' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('companies')}
+            >
+              <Building2 className="h-4 w-4 mr-2" />
+              Companies
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className={`flex-1 overflow-y-auto ${currentView !== 'customer-360' ? 'p-6' : ''}`}>
         {renderView()}
       </div>
     </div>

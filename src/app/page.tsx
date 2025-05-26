@@ -227,9 +227,12 @@ export default function AppPage() {
 
   const handleCustomerView = (customerIdOrEmail: string) => {
     console.log('🎯 handleCustomerView called with:', customerIdOrEmail);
+    console.log('🎯 Type of customerIdOrEmail:', typeof customerIdOrEmail);
+    console.log('🎯 Is email (contains @):', customerIdOrEmail.includes('@'));
     setSelectedCustomerId(customerIdOrEmail);
     setCurrentModule('crm');
     console.log('🎯 Switching to CRM module with customer:', customerIdOrEmail);
+    console.log('🎯 selectedCustomerId state will be set to:', customerIdOrEmail);
   };
 
   // Render the appropriate module content
@@ -255,7 +258,7 @@ export default function AppPage() {
           />
         );
       case 'mailbox':
-        return <MailboxPage onCustomerView={handleCustomerView} />;
+        return <MailboxPage onCustomerView={handleCustomerView} onNavigateToCRM={() => setCurrentModule('crm')} />;
       case 'crm':
         return <CRMPage selectedCustomerId={selectedCustomerId} onCustomerBack={() => setSelectedCustomerId(null)} />;
       case 'email-campaign':

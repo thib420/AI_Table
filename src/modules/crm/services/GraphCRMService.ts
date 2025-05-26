@@ -43,7 +43,7 @@ export class GraphCRMService {
       return uniqueContacts.map(this.crmContactToContact);
     } catch (error) {
       console.error('Error fetching contacts from Graph:', error);
-      // Return empty array or fallback to mock data
+      // Return empty array - no fallback to mock data, only real data from Microsoft Graph
       return [];
     }
   }

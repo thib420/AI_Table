@@ -5,7 +5,10 @@ import {
   TrendingUp, 
   DollarSign, 
   Target,
-  Activity
+  Activity,
+  Mail,
+  Calendar,
+  UserPlus
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +45,56 @@ export function DashboardView() {
     loadData();
   }, []);
 
+  // Generate recent activities from real data
+  const getRecentActivities = () => {
+    const activities = [];
+    
+    // Add recent deals as activities
+    deals.slice(0, 2).forEach(deal => {
+      activities.push({
+        id: `deal-${deal.id}`,
+        type: 'deal',
+        icon: Target,
+        color: 'bg-orange-500',
+        message: `Deal "${deal.title}" created`,
+        time: `${deal.company}`,
+        timestamp: deal.createdDate
+      });
+    });
+
+    // Add recent contacts as activities
+    contacts.slice(0, 2).forEach(contact => {
+      activities.push({
+        id: `contact-${contact.id}`,
+        type: 'contact',
+        icon: UserPlus,
+        color: 'bg-blue-500',
+        message: `New contact added: ${contact.name}`,
+        time: `${contact.company}`,
+        timestamp: contact.lastContact
+      });
+    });
+
+    // Sort by timestamp (most recent first)
+    return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 3);
+  };
+
+  const formatActivityTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else {
+      return 'Less than an hour ago';
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -60,6 +113,8 @@ export function DashboardView() {
       </div>
     );
   }
+
+  const recentActivities = getRecentActivities();
 
   return (
     <div className="space-y-6">
@@ -138,27 +193,30 @@ export function DashboardView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm">Email sent to Sarah Johnson</p>
-                <p className="text-xs text-muted-foreground">2 hours ago</p>
+            {recentActivities.length > 0 ? (
+              recentActivities.map((activity) => {
+                const IconComponent = activity.icon;
+                return (
+                  <div key={activity.id} className="flex items-center space-x-3">
+                    <div className={`w-2 h-2 ${activity.color} rounded-full`}></div>
+                    <div className="flex-1">
+                      <p className="text-sm">{activity.message}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.time} • {formatActivityTime(activity.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-8">
+                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No recent activity</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Activity will appear here as you interact with contacts and create deals
+                </p>
               </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm">Meeting scheduled with Michael Chen</p>
-                <p className="text-xs text-muted-foreground">5 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-              <div className="flex-1">
-                <p className="text-sm">New lead added: Emily Rodriguez</p>
-                <p className="text-xs text-muted-foreground">1 day ago</p>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -170,23 +228,33 @@ export function DashboardView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {deals.filter(d => !d.stage.startsWith('closed')).map((deal) => (
-              <div key={deal.id} className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{deal.title}</p>
-                  <div className="flex items-center space-x-2">
-                    <Badge className={getStageColor(deal.stage)}>
-                      {deal.stage.replace('-', ' ')}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">{deal.probability}%</span>
+            {deals.filter(d => !d.stage.startsWith('closed')).length > 0 ? (
+              deals.filter(d => !d.stage.startsWith('closed')).map((deal) => (
+                <div key={deal.id} className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{deal.title}</p>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={getStageColor(deal.stage)}>
+                        {deal.stage.replace('-', ' ')}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{deal.probability}%</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">${deal.value.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">{deal.company}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">${deal.value.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">{deal.company}</p>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No active deals</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Deals are automatically created from high-priority emails and meetings
+                </p>
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
       </div>

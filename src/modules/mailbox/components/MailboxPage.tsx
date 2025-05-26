@@ -14,9 +14,10 @@ import { RefreshCw, Wifi, WifiOff, Mail, LogOut, AlertCircle, Settings } from 'l
 
 interface MailboxPageProps {
   onCustomerView?: (customerId: string) => void;
+  onNavigateToCRM?: () => void;
 }
 
-export function MailboxPage({ onCustomerView }: MailboxPageProps = {}) {
+export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProps = {}) {
   const { isSignedIn, isLoading: authLoading, signIn, signOut, userProfile } = useMicrosoftAuth();
   const [showSetupHelp, setShowSetupHelp] = useState(false);
   const [useDemoMode, setUseDemoMode] = useState(false);
@@ -36,17 +37,14 @@ export function MailboxPage({ onCustomerView }: MailboxPageProps = {}) {
     toggleStar,
   } = useMailbox();
 
-  // Helper for quick customer add - opens Customer 360 view
-  const handleQuickCustomer = () => {
-    console.log('📧 handleQuickCustomer called');
-    console.log('📧 selectedEmail:', selectedEmail);
-    console.log('📧 onCustomerView:', onCustomerView);
-    
-    if (selectedEmail && onCustomerView) {
-      console.log('📧 Calling onCustomerView with:', selectedEmail.senderEmail);
-      onCustomerView(selectedEmail.senderEmail);
+  // Helper for viewing CRM - navigates to CRM module
+  const handleViewCRM = () => {
+    console.log('📧 handleViewCRM called - navigating to CRM');
+    if (onNavigateToCRM) {
+      onNavigateToCRM();
     } else {
-      console.log('❌ Cannot call onCustomerView - missing selectedEmail or onCustomerView');
+      // Fallback: navigate to CRM page directly
+      window.location.href = '/?view=crm';
     }
   };
 
@@ -257,7 +255,7 @@ export function MailboxPage({ onCustomerView }: MailboxPageProps = {}) {
             setSearchQuery={setSearchQuery}
             inboxUnread={allEmails.filter(e => e.folder === 'inbox' && !e.isRead).length}
             starredCount={allEmails.filter(e => e.isStarred).length}
-            onQuickCustomer={handleQuickCustomer}
+            onViewCRM={handleViewCRM}
           />
           {/* Email List */}
           <div className="flex-1 flex min-h-0">

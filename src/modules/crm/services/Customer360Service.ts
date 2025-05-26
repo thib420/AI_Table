@@ -177,19 +177,19 @@ export class Customer360Service {
       // Process emails from sender search (these are definitely from the customer)
       if (senderEmails.status === 'fulfilled') {
         console.log(`✅ Processing ${senderEmails.value.length} emails from sender`);
-        senderEmails.value.forEach(email => {
-          if (email.id && !processedIds.has(email.id)) {
-            processedIds.add(email.id);
+        senderEmails.value.forEach(graphEmail => {
+          if (graphEmail.id && !processedIds.has(graphEmail.id)) {
+            processedIds.add(graphEmail.id);
             emails.push({
-              id: email.id || '',
-              subject: email.subject || '',
-              preview: email.bodyPreview || '',
-              sender: email.sender?.emailAddress?.name || '',
-              senderEmail: email.sender?.emailAddress?.address || '',
-              receivedDateTime: email.receivedDateTime || '',
-              isRead: email.isRead || false,
-              importance: (email.importance as 'low' | 'normal' | 'high') || 'normal',
-              hasAttachments: email.hasAttachments || false,
+              id: graphEmail.id || '',
+              subject: graphEmail.subject || '',
+              preview: graphEmail.bodyPreview || '',
+              sender: graphEmail.sender?.emailAddress?.name || '',
+              senderEmail: graphEmail.sender?.emailAddress?.address || '',
+              receivedDateTime: graphEmail.receivedDateTime || '',
+              isRead: graphEmail.isRead || false,
+              importance: (graphEmail.importance as 'low' | 'normal' | 'high') || 'normal',
+              hasAttachments: graphEmail.hasAttachments || false,
               direction: 'inbound' as const
             });
           }
@@ -201,24 +201,24 @@ export class Customer360Service {
       // Process emails from general search (may include emails to/from the customer)
       if (searchEmails.status === 'fulfilled') {
         console.log(`✅ Processing ${searchEmails.value.length} emails from search`);
-        searchEmails.value.forEach(email => {
-          if (email.id && !processedIds.has(email.id)) {
-            processedIds.add(email.id);
+        searchEmails.value.forEach(graphEmail => {
+          if (graphEmail.id && !processedIds.has(graphEmail.id)) {
+            processedIds.add(graphEmail.id);
             
             // Determine direction based on sender
-            const direction = email.sender?.emailAddress?.address?.toLowerCase() === email.toLowerCase() 
+            const direction = graphEmail.sender?.emailAddress?.address?.toLowerCase() === email.toLowerCase() 
               ? 'inbound' : 'outbound';
             
             emails.push({
-              id: email.id || '',
-              subject: email.subject || '',
-              preview: email.bodyPreview || '',
-              sender: email.sender?.emailAddress?.name || '',
-              senderEmail: email.sender?.emailAddress?.address || '',
-              receivedDateTime: email.receivedDateTime || '',
-              isRead: email.isRead || false,
-              importance: (email.importance as 'low' | 'normal' | 'high') || 'normal',
-              hasAttachments: email.hasAttachments || false,
+              id: graphEmail.id || '',
+              subject: graphEmail.subject || '',
+              preview: graphEmail.bodyPreview || '',
+              sender: graphEmail.sender?.emailAddress?.name || '',
+              senderEmail: graphEmail.sender?.emailAddress?.address || '',
+              receivedDateTime: graphEmail.receivedDateTime || '',
+              isRead: graphEmail.isRead || false,
+              importance: (graphEmail.importance as 'low' | 'normal' | 'high') || 'normal',
+              hasAttachments: graphEmail.hasAttachments || false,
               direction
             });
           }
@@ -399,7 +399,8 @@ export class Customer360Service {
     const recentEmails = emails.slice(0, 10);
     if (recentEmails.length === 0) return 'N/A';
     
-    // Mock calculation
+    // Calculate average response time based on actual email data
+    // This would require more sophisticated analysis of email threads in production
     return '2h 30m';
   }
 

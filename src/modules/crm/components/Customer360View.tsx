@@ -45,6 +45,13 @@ export function Customer360View({ customerEmail, onBack }: Customer360ViewProps)
   useEffect(() => {
     console.log('🎯 Customer360View: Component mounted with email:', customerEmail);
     console.log('🎯 Customer360View: isSignedIn:', isSignedIn);
+    console.log('🎯 Customer360View: Component props:', { customerEmail, onBack });
+    if (!customerEmail) {
+      console.error('🎯 Customer360View: No customerEmail provided!');
+      setError('No customer email provided');
+      setIsLoading(false);
+      return;
+    }
     loadCustomerProfile();
   }, [customerEmail]);
 
