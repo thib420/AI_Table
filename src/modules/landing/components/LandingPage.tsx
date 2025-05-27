@@ -31,13 +31,9 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             <div className="flex items-center space-x-3">
               <img 
                 src="/logo.png" 
-                alt="Converr" 
-                className="w-8 h-8 rounded-md"
+                alt="Logo" 
+                className="h-8 w-auto"
               />
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Converr</h1>
-                <p className="text-xs text-gray-500">Professional Intelligence</p>
-              </div>
             </div>
             <nav className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Features</a>
@@ -565,10 +561,9 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
               <div className="flex items-center space-x-3 mb-4">
                 <img 
                   src="/logo.png" 
-                  alt="Converr" 
-                  className="w-8 h-8 rounded-md"
+                  alt="Logo" 
+                  className="h-8 w-auto"
                 />
-                <h3 className="text-lg font-bold text-gray-900">Converr</h3>
               </div>
               <p className="text-sm text-gray-600 mb-4">
                 AI-powered professional intelligence platform for modern businesses.
