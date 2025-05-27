@@ -153,14 +153,10 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
     );
   }
 
-  const defaultColumns: ColumnDef[] = [
-    { id: 'title', header: 'Title', accessorKey: 'title', type: 'default' },
-    { id: 'author', header: 'Author', accessorKey: 'author', type: 'default' },
-    { id: 'url', header: 'URL', accessorKey: 'url', type: 'default' },
-    { id: 'text', header: 'Description', accessorKey: 'text', type: 'default' }
-  ];
-
-  const allColumns = [...defaultColumns, ...columns.filter(col => col.type === 'ai-generated')];
+  // Use the columns passed as props for default columns, and add AI-generated columns
+  const defaultColumns = columns.filter(col => col.type === 'default');
+  const aiColumns = columns.filter(col => col.type === 'ai-generated');
+  const allColumns = [...defaultColumns, ...aiColumns];
 
   return (
     <div className="space-y-4">
@@ -235,7 +231,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                   />
                 </th>
                 {allColumns.map((column) => (
-                  <th key={column.id} className="text-left p-3 min-w-[150px]">
+                  <th key={column.id} className={`text-left p-3 ${column.accessorKey === 'author' ? 'min-w-[200px]' : 'min-w-[150px]'}`}>
                     <div className="flex items-center space-x-2">
                       <span className="font-medium">{column.header}</span>
                       {column.type === 'ai-generated' && (
@@ -286,10 +282,31 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                             <ExternalLink className="h-4 w-4 mr-1 flex-shrink-0" />
                             <span className="truncate">{value}</span>
                           </a>
-                        ) : column.accessorKey === 'text' ? (
-                          <div className="text-sm text-muted-foreground line-clamp-3">
-                            {String(value).substring(0, 200)}
-                            {String(value).length > 200 && '...'}
+                        ) : column.accessorKey === 'cleanDescription' ? (
+                          <div className="text-sm text-muted-foreground max-w-md">
+                            <div className="line-clamp-2 leading-relaxed">
+                              {String(value)}
+                            </div>
+                          </div>
+                        ) : column.accessorKey === 'company' ? (
+                          <div className="text-sm font-medium">
+                            {String(value)}
+                          </div>
+                        ) : column.accessorKey === 'author' ? (
+                          <div className="flex items-center space-x-3">
+                            <img
+                              src={result.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(String(value))}&size=40&background=6366f1&color=fff&bold=true&format=png`}
+                              alt={`${String(value)} profile`}
+                              className="w-8 h-8 rounded-full flex-shrink-0 bg-gray-100"
+                              onError={(e) => {
+                                // Fallback to generated avatar if image fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(String(value))}&size=40&background=6366f1&color=fff&bold=true&format=png`;
+                              }}
+                            />
+                            <span className="text-sm font-medium truncate">
+                              {String(value)}
+                            </span>
                           </div>
                         ) : (
                           <div className="truncate" title={String(value)}>
