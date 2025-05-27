@@ -5,7 +5,6 @@ import { AppLayoutProps } from '@/shared/types/search';
 import { useSearchState } from '@/shared/hooks/useSearchState';
 import { useAIColumns } from '@/shared/hooks/useAIColumns';
 import { SearchSidebar } from '@/components/layout/SearchSidebar';
-import { SearchInput } from '@/components/layout/SearchInput';
 import { SearchResults } from '@/components/layout/SearchResults';
 import { CompleteSearchState } from '@/modules/search/components/SearchHistoryManager';
 
@@ -145,15 +144,7 @@ export function AppLayout({
               />
             </div>
 
-            {/* Search Input at Bottom */}
-            <SearchInput
-              query={searchState.query}
-              isLoading={searchState.isLoading}
-              sidebarOpen={sidebarOpen}
-              setSidebarOpen={setSidebarOpen}
-              onQueryChange={handleQueryChange}
-              onSearch={handleSearch}
-            />
+
           </div>
         </main>
       </div>

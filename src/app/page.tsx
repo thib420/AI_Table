@@ -44,6 +44,20 @@ export default function AppPage() {
     isMicrosoftSignedIn,
     signInToMicrosoft 
   } = useUnifiedAuth();
+
+  // Debug logging for authentication state
+  useEffect(() => {
+    console.log('🔍 Auth Debug:', {
+      user: user ? {
+        email: user.email,
+        id: user.id,
+        metadata: user.user_metadata
+      } : null,
+      hasAnyAuth,
+      isMicrosoftSignedIn,
+      authIsLoading
+    });
+  }, [user, hasAnyAuth, isMicrosoftSignedIn, authIsLoading]);
   const { fetchSavedSearches, saveCompleteSearch, deleteSavedSearch } = useSearchHistory();
 
   const [currentModule, setCurrentModule] = useState<BusinessModule>('ai-table');
@@ -290,8 +304,8 @@ export default function AppPage() {
     return <LandingPage onGetStarted={handleLoginWithAzure} />;
   }
 
-  // Show main application with module navigation for authenticated users OR development bypass
-  if (hasAnyAuth || true) { // Temporarily allow access without authentication
+  // Show main application with module navigation for authenticated users
+  if (hasAnyAuth) {
     return (
       <MainLayout
         user={user}

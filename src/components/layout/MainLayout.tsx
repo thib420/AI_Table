@@ -15,14 +15,14 @@ import {
   Building2,
   Inbox,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  User as UserIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from 'next-themes';
-import { Input } from '@/components/ui/input';
 
 interface MainLayoutProps {
   user: User | null;
@@ -72,64 +72,76 @@ const navigationItems = [
   }
 ];
 
-// Mock customers for global search
-const mockCustomers = [
-  { id: '1', name: 'Sarah Johnson', company: 'TechCorp Inc.', email: 'sarah.johnson@techcorp.com' },
-  { id: '2', name: 'Michael Chen', company: 'Innovate.io', email: 'michael.chen@innovate.io' },
-  { id: '3', name: 'Emily Rodriguez', company: 'GlobalTech Solutions', email: 'emily.r@globaltech.com' }
-];
+
 
 export function MainLayout({ user, children, currentModule, onModuleChange, onLogout, onCustomerView }: MainLayoutProps) {
   const { theme, setTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false); // Desktop sidebar expansion
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<typeof mockCustomers>([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
 
   const getUserInitials = (user: User) => {
+    // Try to get name from various metadata fields
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.display_name;
+    const firstName = user.user_metadata?.first_name;
+    const lastName = user.user_metadata?.last_name;
     const email = user.email || '';
-    const name = user.user_metadata?.full_name || user.user_metadata?.name || '';
-    if (name) {
-      return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+
+    // If we have a full name, use it
+    if (fullName) {
+      const nameParts = fullName.trim().split(' ').filter(part => part.length > 0);
+      if (nameParts.length >= 2) {
+        return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
+      } else if (nameParts.length === 1) {
+        return nameParts[0].slice(0, 2).toUpperCase();
+      }
     }
-    return email.slice(0, 2).toUpperCase();
+
+    // If we have first and last name separately
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    }
+
+    // If we only have first name
+    if (firstName) {
+      return firstName.slice(0, 2).toUpperCase();
+    }
+
+    // Fall back to email
+    if (email) {
+      const emailName = email.split('@')[0];
+      if (emailName.length >= 2) {
+        return emailName.slice(0, 2).toUpperCase();
+      }
+      return emailName.toUpperCase();
+    }
+
+    return 'U';
   };
 
   const getUserDisplayName = (user: User) => {
-    return user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'User';
-  };
+    // Try various name fields in order of preference
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.display_name;
+    if (fullName) return fullName;
 
-  const handleGlobalSearch = (query: string) => {
-    setSearchQuery(query);
-    if (query.trim()) {
-      const filtered = mockCustomers.filter(customer => 
-        customer.name.toLowerCase().includes(query.toLowerCase()) ||
-        customer.company.toLowerCase().includes(query.toLowerCase()) ||
-        customer.email.toLowerCase().includes(query.toLowerCase())
-      );
-      setSearchResults(filtered);
-      setShowSearchResults(true);
-    } else {
-      setShowSearchResults(false);
+    const firstName = user.user_metadata?.first_name;
+    const lastName = user.user_metadata?.last_name;
+    if (firstName && lastName) return `${firstName} ${lastName}`;
+    if (firstName) return firstName;
+
+    // Fall back to email username (before @)
+    if (user.email) {
+      const emailName = user.email.split('@')[0];
+      // Convert email-style names to readable format (e.g., "john.doe" -> "John Doe")
+      return emailName
+        .split(/[._-]/)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
     }
+
+    return 'User';
   };
 
-  const handleCustomerSelect = (customerId: string) => {
-    setSearchQuery('');
-    setShowSearchResults(false);
-    onModuleChange('crm');
-    if (onCustomerView) {
-      onCustomerView(customerId);
-    }
-  };
 
-  const generateProfilePicture = (name: string) => {
-    const colors = ['3B82F6', '8B5CF6', '10B981', 'F59E0B', 'EF4444', '6366F1', '14B8A6', 'F97316'];
-    const colorIndex = name.length % colors.length;
-    const backgroundColor = colors[colorIndex];
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=64&background=${backgroundColor}&color=fff&bold=true&format=png`;
-  };
 
   const currentItem = navigationItems.find(item => item.id === currentModule);
 
@@ -161,48 +173,7 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
             </div>
           </div>
 
-          {/* Global Search */}
-          <div className="flex-1 max-w-md mx-8 relative">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search customers, companies, deals..."
-                value={searchQuery}
-                onChange={(e) => handleGlobalSearch(e.target.value)}
-                className="pl-10 bg-muted/30"
-                onFocus={() => searchQuery && setShowSearchResults(true)}
-                onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
-              />
-            </div>
-            
-            {/* Search Results Dropdown */}
-            {showSearchResults && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-                <div className="p-2">
-                  <p className="text-xs font-medium text-muted-foreground mb-2 px-2">Customers</p>
-                  {searchResults.map((customer) => (
-                    <div
-                      key={customer.id}
-                      className="flex items-center space-x-3 p-3 hover:bg-muted/50 rounded-lg cursor-pointer"
-                      onClick={() => handleCustomerSelect(customer.id)}
-                    >
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={generateProfilePicture(customer.name)} alt={customer.name} />
-                        <AvatarFallback className="text-xs">{customer.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{customer.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{customer.company}</p>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        View 360
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+
 
           <div className="ml-auto flex items-center space-x-4">
             {/* Current Module Indicator */}
@@ -226,40 +197,59 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
             </Button>
 
             {/* User Menu */}
-            {(user || true) && ( // Temporarily always show user menu
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={user?.user_metadata?.avatar_url} alt={user ? getUserDisplayName(user) : 'Dev User'} />
-                      <AvatarFallback className="text-sm">
-                        {user ? getUserInitials(user) : 'DV'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user ? getUserDisplayName(user) : 'Development User'}</p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user?.email || 'dev@example.com'}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={user?.user_metadata?.avatar_url} alt={user ? getUserDisplayName(user) : 'User'} />
+                    <AvatarFallback className="text-sm">
+                      {user ? getUserInitials(user) : '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Connection Status Indicator */}
+                  <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${
+                    user ? 'bg-green-500' : 'bg-gray-400'
+                  }`} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-sm font-medium leading-none">
+                        {user ? getUserDisplayName(user) : 'Not Connected'}
                       </p>
+                      <div className={`h-2 w-2 rounded-full ${user ? 'bg-green-500' : 'bg-gray-400'}`} />
                     </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={onLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email || 'Please sign in to access all features'}
+                    </p>
+                    {user && (
+                      <p className="text-xs leading-none text-green-600 dark:text-green-400 font-medium">
+                        ● Connected
+                      </p>
+                    )}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {user && (
+                  <>
+                    <DropdownMenuItem>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                <DropdownMenuItem 
+                  onClick={onLogout}
+                  className={user ? "text-red-600 dark:text-red-400" : ""}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>{user ? 'Sign Out' : 'Sign In'}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
