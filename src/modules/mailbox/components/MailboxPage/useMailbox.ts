@@ -174,6 +174,7 @@ export function useMailbox() {
     try {
       console.log('📁 Loading mail folders from Microsoft Graph...');
       const graphFolders = await microsoftGraphService.getMailFolders();
+      console.log('📁 Raw Graph folders received:', graphFolders);
       
       const systemFolders = getDefaultFolders();
       const customFolders: MailboxFolder[] = [];
@@ -184,15 +185,21 @@ export function useMailbox() {
           isMatchingSystemFolder(f.displayName || '', sysFolder.id)
         );
         
+        console.log(`🔍 Looking for system folder "${sysFolder.id}" (${sysFolder.displayName})`);
+        console.log('🔍 Found matching Graph folder:', matchingGraphFolder);
+        
         if (matchingGraphFolder) {
-          return {
+          const updatedFolder = {
             ...sysFolder,
             id: sysFolder.id, // Keep our system ID for consistency
             graphId: matchingGraphFolder.id, // Store the actual Graph ID separately
             unreadCount: matchingGraphFolder.unreadItemCount || 0,
             totalCount: matchingGraphFolder.totalItemCount || 0,
           };
+          console.log(`✅ Updated system folder "${sysFolder.id}":`, updatedFolder);
+          return updatedFolder;
         }
+        console.log(`⚠️ No matching Graph folder found for "${sysFolder.id}"`);
         return sysFolder;
       });
 
@@ -213,6 +220,7 @@ export function useMailbox() {
 
       // Create final folder list with guaranteed unique IDs
       const allFolders = [...updatedSystemFolders, ...customFolders];
+      console.log('📁 Final folder list:', allFolders);
       
       setFolders(allFolders);
       console.log(`✅ Loaded ${updatedSystemFolders.length} system folders and ${customFolders.length} custom folders`);
@@ -389,23 +397,90 @@ export function useMailbox() {
   // Delete email from Microsoft Graph and local state
   const deleteEmail = useCallback(async (email: Email) => {
     try {
+      console.log('🗑️ Deleting email:', email.subject, 'ID:', email.id);
+      
       // If connected to Microsoft Graph, move to Deleted Items folder
       if (isSignedIn && email.graphMessage?.id) {
-        // Find the Deleted Items folder
-        const deletedItemsFolder = folders.find(f => f.id === 'deletedItems');
-        const deletedItemsGraphId = deletedItemsFolder?.graphId || 'deleteditems';
+        console.log('📧 Connected to Graph, moving to Deleted Items...');
         
-        // Move the email to Deleted Items folder
-        await microsoftGraphService.moveEmail(email.graphMessage.id, deletedItemsGraphId);
+        // First try to get the actual Deleted Items folder ID from Microsoft Graph
+        let actualDeletedItemsFolderId = null;
+        try {
+          actualDeletedItemsFolderId = await microsoftGraphService.getDeletedItemsFolder();
+          console.log('📁 Actual Deleted Items folder ID from Graph:', actualDeletedItemsFolderId);
+        } catch (error) {
+          console.warn('⚠️ Failed to get actual Deleted Items folder ID:', error);
+        }
         
-        // Update local state - move email to deletedItems folder instead of removing it
-        setAllEmails(prev => prev.map(e => 
-          e.id === email.id 
-            ? { ...e, folder: 'deletedItems', folderId: deletedItemsGraphId }
-            : e
-        ));
+        // Prepare list of folder IDs to try
+        const possibleDeletedFolderIds = [];
         
-        console.log('✅ Email moved to Deleted Items:', email.subject);
+        // Add the actual folder ID first if we found it
+        if (actualDeletedItemsFolderId) {
+          possibleDeletedFolderIds.push(actualDeletedItemsFolderId);
+        }
+        
+        // Add our stored folder ID if available
+        const deletedItemsFolder = folders.find(f => 
+          f.id === 'deletedItems' || 
+          f.displayName?.toLowerCase().includes('deleted') ||
+          f.displayName?.toLowerCase().includes('trash')
+        );
+        
+        if (deletedItemsFolder?.graphId) {
+          possibleDeletedFolderIds.push(deletedItemsFolder.graphId);
+        }
+        
+        // Add Microsoft Graph well-known folder names
+        possibleDeletedFolderIds.push(
+          'deleteditems',  // Standard well-known name
+          'deletedItems',  // Alternative format
+          'trash'          // Some systems use this
+        );
+        
+        // Remove duplicates
+        const uniqueFolderIds = [...new Set(possibleDeletedFolderIds)];
+        console.log('📁 Will try these folder IDs in order:', uniqueFolderIds);
+        
+        let moveSuccessful = false;
+        let lastError = null;
+        
+        // Try each possible folder ID until one works
+        for (const folderId of uniqueFolderIds) {
+          try {
+            console.log(`📍 Trying to move to folder ID: ${folderId}`);
+            await microsoftGraphService.moveEmail(email.graphMessage.id, folderId);
+            console.log('✅ Email moved successfully to Deleted Items using ID:', folderId);
+            
+            // Update local state - move email to deletedItems folder
+            setAllEmails(prev => prev.map(e => 
+              e.id === email.id 
+                ? { ...e, folder: 'deletedItems', folderId: folderId }
+                : e
+            ));
+            
+            moveSuccessful = true;
+            break;
+            
+          } catch (moveError) {
+            console.warn(`⚠️ Failed to move to folder "${folderId}":`, moveError);
+            lastError = moveError;
+            continue;
+          }
+        }
+        
+        if (!moveSuccessful) {
+          console.error('❌ All move attempts failed. Last error:', lastError);
+          console.log('🔄 Falling back to permanent deletion...');
+          
+          // Fallback: permanently delete if all move attempts fail
+          await microsoftGraphService.deleteEmail(email.graphMessage.id);
+          
+          // Remove from local state since it's permanently deleted
+          setAllEmails(prev => prev.filter(e => e.id !== email.id));
+          console.log('⚠️ Email permanently deleted as fallback');
+        }
+        
       } else {
         // For demo mode or when not connected, just remove from local state
         setAllEmails(prev => prev.filter(e => e.id !== email.id));
@@ -419,6 +494,13 @@ export function useMailbox() {
       
     } catch (error) {
       console.error('Error deleting email:', error);
+      
+      // Log detailed error information
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
       throw error;
     }
   }, [isSignedIn, selectedEmail, folders]);

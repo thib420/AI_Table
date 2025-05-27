@@ -85,7 +85,32 @@ export class MicrosoftGraphService {
 
   async moveEmail(messageId: string, destinationFolderId: string): Promise<any> {
     await this.ensureInitialized();
-    return await graphServiceManager.mail.moveEmail(messageId, destinationFolderId);
+    console.log('📧 MicrosoftGraphService.moveEmail called:', { messageId, destinationFolderId });
+    try {
+      const result = await graphServiceManager.mail.moveEmail(messageId, destinationFolderId);
+      console.log('✅ Move operation successful');
+      return result;
+    } catch (error) {
+      console.error('❌ Move operation failed:', error);
+      throw error;
+    }
+  }
+
+  async getDeletedItemsFolder(): Promise<string | null> {
+    await this.ensureInitialized();
+    try {
+      const folders = await graphServiceManager.mail.getMailFolders();
+      const deletedItemsFolder = folders.find(folder => 
+        folder.displayName?.toLowerCase() === 'deleted items' ||
+        folder.displayName?.toLowerCase() === 'deleted' ||
+        folder.displayName?.toLowerCase() === 'trash'
+      );
+      console.log('🔍 Found Deleted Items folder:', deletedItemsFolder);
+      return deletedItemsFolder?.id || null;
+    } catch (error) {
+      console.error('❌ Failed to get Deleted Items folder:', error);
+      return null;
+    }
   }
 
   async getUserProfile() {
