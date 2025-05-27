@@ -378,6 +378,22 @@ export function useMailbox() {
     }
   }, [isSignedIn]);
 
+  // Mark email as unread in Microsoft Graph
+  const markAsUnread = useCallback(async (email: Email) => {
+    if (!isSignedIn || !email.graphMessage?.id) return;
+
+    try {
+      await microsoftGraphService.markAsUnread(email.graphMessage.id);
+      
+      // Update local state
+      setAllEmails(prev => prev.map(e => 
+        e.id === email.id ? { ...e, isRead: false } : e
+      ));
+    } catch (error) {
+      console.error('Error marking email as unread:', error);
+    }
+  }, [isSignedIn]);
+
   // Toggle star/flag in Microsoft Graph
   const toggleStar = useCallback(async (email: Email) => {
     if (!isSignedIn || !email.graphMessage?.id) return;
@@ -549,6 +565,7 @@ export function useMailbox() {
     error,
     isConnected: isSignedIn,
     markAsRead,
+    markAsUnread,
     toggleStar,
     deleteEmail,
     refreshEmails,

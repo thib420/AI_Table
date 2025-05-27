@@ -35,6 +35,8 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
     error,
     isConnected,
     refreshEmails,
+    markAsRead,
+    markAsUnread,
     toggleStar,
     deleteEmail,
   } = useMailbox();
@@ -290,6 +292,8 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
                 onSelect={setSelectedEmail}
                 onToggleStar={toggleStar}
                 onDelete={handleDeleteEmail}
+                onMarkAsRead={markAsRead}
+                onMarkAsUnread={markAsUnread}
               />
             </div>
             {/* Email Content */}

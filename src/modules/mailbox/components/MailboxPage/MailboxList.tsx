@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Email } from './useMailbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star, Paperclip, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmailContextMenu } from './EmailContextMenu';
 
 interface MailboxListProps {
   emails: Email[];
@@ -10,9 +11,25 @@ interface MailboxListProps {
   onSelect: (email: Email) => void;
   onToggleStar?: (email: Email) => void;
   onDelete?: (email: Email) => void;
+  onMarkAsRead?: (email: Email) => void;
+  onMarkAsUnread?: (email: Email) => void;
 }
 
-export function MailboxList({ emails, selectedEmailId, onSelect, onToggleStar, onDelete }: MailboxListProps) {
+export function MailboxList({ 
+  emails, 
+  selectedEmailId, 
+  onSelect, 
+  onToggleStar, 
+  onDelete, 
+  onMarkAsRead, 
+  onMarkAsUnread 
+}: MailboxListProps) {
+  const [contextMenu, setContextMenu] = useState<{
+    email: Email;
+    position: { x: number; y: number };
+    isOpen: boolean;
+  } | null>(null);
+
   const handleStarClick = (e: React.MouseEvent, email: Email) => {
     e.stopPropagation(); // Prevent email selection
     onToggleStar?.(email);
@@ -20,20 +37,51 @@ export function MailboxList({ emails, selectedEmailId, onSelect, onToggleStar, o
 
   const handleDeleteClick = (e: React.MouseEvent, email: Email) => {
     e.stopPropagation(); // Prevent email selection
+    console.log('🗑️ Trash button clicked for email:', email.subject);
     onDelete?.(email);
   };
 
+  const handleRightClick = (e: React.MouseEvent, email: Email) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setContextMenu({
+      email,
+      position: { x: e.clientX, y: e.clientY },
+      isOpen: true,
+    });
+  };
+
+  const handleContextMenuClose = () => {
+    setContextMenu(null);
+  };
+
+  // Placeholder functions for context menu actions that aren't implemented yet
+  const handleArchive = (email: Email) => {
+    console.log('Archive action not implemented yet:', email.subject);
+  };
+
+  const handleReply = (email: Email) => {
+    console.log('Reply action not implemented yet:', email.subject);
+  };
+
+  const handleForward = (email: Email) => {
+    console.log('Forward action not implemented yet:', email.subject);
+  };
+
   return (
-    <div className="divide-y overflow-auto flex-1">
-      {emails.map((email) => (
-        <div
-          key={email.id}
-          data-testid="email-row"
-          className={`p-3 hover:bg-muted/50 cursor-pointer transition-colors ${
-            selectedEmailId === email.id ? 'bg-muted' : ''
-          } ${!email.isRead ? 'bg-blue-50 dark:bg-blue-950/20 border-l-2 border-l-blue-500' : ''}`}
-          onClick={() => onSelect(email)}
-        >
+    <>
+      <div className="divide-y overflow-auto flex-1">
+        {emails.map((email) => (
+          <div
+            key={email.id}
+            data-testid="email-row"
+            className={`p-3 hover:bg-muted/50 cursor-pointer transition-colors ${
+              selectedEmailId === email.id ? 'bg-muted' : ''
+            } ${!email.isRead ? 'bg-blue-50 dark:bg-blue-950/20 border-l-2 border-l-blue-500' : ''}`}
+            onClick={() => onSelect(email)}
+            onContextMenu={(e) => handleRightClick(e, email)}
+          >
           <div className="flex items-start space-x-2">
             <Avatar className="h-8 w-8">
               <AvatarImage src={email.avatarUrl} alt={email.sender} />
@@ -72,11 +120,29 @@ export function MailboxList({ emails, selectedEmailId, onSelect, onToggleStar, o
           </div>
         </div>
       ))}
-      {emails.length === 0 && (
-        <div className="p-8 text-center text-muted-foreground">
-          <p>No emails found</p>
-        </div>
+        {emails.length === 0 && (
+          <div className="p-8 text-center text-muted-foreground">
+            <p>No emails found</p>
+          </div>
+        )}
+      </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <EmailContextMenu
+          email={contextMenu.email}
+          isOpen={contextMenu.isOpen}
+          onOpenChange={handleContextMenuClose}
+          position={contextMenu.position}
+          onMarkAsRead={onMarkAsRead}
+          onMarkAsUnread={onMarkAsUnread}
+          onToggleStar={onToggleStar}
+          onDelete={onDelete}
+          onArchive={handleArchive}
+          onReply={handleReply}
+          onForward={handleForward}
+        />
       )}
-    </div>
+    </>
   );
 } 

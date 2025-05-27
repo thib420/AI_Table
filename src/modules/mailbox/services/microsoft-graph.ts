@@ -73,6 +73,11 @@ export class MicrosoftGraphService {
     await graphServiceManager.mail.markAsRead(messageId);
   }
 
+  async markAsUnread(messageId: string): Promise<void> {
+    await this.ensureInitialized();
+    await graphServiceManager.mail.markAsUnread(messageId);
+  }
+
   async setFlag(messageId: string, flagged: boolean): Promise<void> {
     await this.ensureInitialized();
     await graphServiceManager.mail.setFlag(messageId, flagged);
