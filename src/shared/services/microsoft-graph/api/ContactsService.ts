@@ -48,7 +48,17 @@ export class ContactsService {
 
   // Search contacts
   async searchContacts(searchTerm: string, options?: Omit<ContactsSearchOptions, 'search'>): Promise<GraphContact[]> {
-    const filter = `startswith(displayName,'${searchTerm}') or startswith(givenName,'${searchTerm}') or startswith(surname,'${searchTerm}') or startswith(companyName,'${searchTerm}')`;
+    // Check if searchTerm is an email address
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(searchTerm);
+    
+    let filter: string;
+    if (isEmail) {
+      // For email addresses, search in the emailAddresses collection
+      filter = `emailAddresses/any(e:e/address eq '${searchTerm}')`;
+    } else {
+      // For non-email terms, search in name and company fields
+      filter = `startswith(displayName,'${searchTerm}') or startswith(givenName,'${searchTerm}') or startswith(surname,'${searchTerm}') or startswith(companyName,'${searchTerm}')`;
+    }
     
     return await this.getContacts({
       ...options,

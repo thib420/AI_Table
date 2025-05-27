@@ -26,17 +26,28 @@ export function CRMPage({ selectedCustomerId, onCustomerBack }: CRMPageProps = {
     console.log('🏢 CRMPage: selectedCustomerId changed to:', selectedCustomerId);
     
     if (selectedCustomerId) {
-      // Check if it's an email (contains @) or a contact ID
-      if (selectedCustomerId.includes('@')) {
+      // Check if it's an email (proper email validation) or a contact ID
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(selectedCustomerId);
+      
+      if (isEmail) {
         console.log('🏢 CRMPage: Detected email, setting customer-360 view');
+        // Reset contact ID state when switching to email view
+        setSelectedContactId(null);
         setCustomerEmail(selectedCustomerId);
         setCurrentView('customer-360');
       } else {
         console.log('🏢 CRMPage: Detected contact ID, setting contact view');
+        // Reset email state when switching to contact view
+        setCustomerEmail(null);
         setSelectedContactId(selectedCustomerId);
+        setCurrentView('dashboard'); // Reset to dashboard, then contact view will be handled below
       }
     } else {
       console.log('🏢 CRMPage: No selectedCustomerId, staying on dashboard');
+      // Reset both states
+      setSelectedContactId(null);
+      setCustomerEmail(null);
+      setCurrentView('dashboard');
     }
   }, [selectedCustomerId]);
 
@@ -98,6 +109,17 @@ export function CRMPage({ selectedCustomerId, onCustomerBack }: CRMPageProps = {
 
   // Handle contact detail view
   if (selectedContactId && currentView !== 'customer-360') {
+    // Double-check that selectedContactId is not an email address
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(selectedContactId);
+    if (isEmail) {
+      console.log('🏢 CRMPage: Email address detected in contact detail view, redirecting to Customer360View');
+      // Safeguard: redirect email addresses to Customer360 instead of ContactDetailPage
+      setCustomerEmail(selectedContactId);
+      setSelectedContactId(null);
+      setCurrentView('customer-360');
+      return <Customer360View customerEmail={selectedContactId} onBack={handleBackToCRM} />;
+    }
+    
     console.log('🏢 CRMPage: Rendering ContactDetailPage with ID:', selectedContactId);
     return <ContactDetailPage contactId={selectedContactId} onBack={handleBackToCRM} />;
   }

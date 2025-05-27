@@ -22,6 +22,13 @@ export class Customer360Service {
   async getCustomerProfile(email: string): Promise<CustomerProfile | null> {
     try {
       console.log(`🚀 Customer360Service: Getting profile for ${email}`);
+      
+      // Validate email format
+      if (!email || !this.isValidEmail(email)) {
+        console.error(`❌ Invalid email format: ${email}`);
+        return null;
+      }
+      
       await graphServiceManager.initialize();
 
       // Get or create contact
@@ -33,7 +40,7 @@ export class Customer360Service {
       }
       console.log(`✅ Contact found/created:`, contact.name);
 
-      // Fetch all customer data in parallel
+      // Fetch all customer data in parallel with better error handling
       console.log(`📊 Fetching customer data in parallel...`);
       const [emails, meetings, documents] = await Promise.allSettled([
         this.getCustomerEmails(email),
@@ -44,6 +51,17 @@ export class Customer360Service {
       const customerEmails = emails.status === 'fulfilled' ? emails.value : [];
       const customerMeetings = meetings.status === 'fulfilled' ? meetings.value : [];
       const customerDocuments = documents.status === 'fulfilled' ? documents.value : [];
+
+      // Log any failures for debugging
+      if (emails.status === 'rejected') {
+        console.error(`⚠️ Failed to get emails for ${email}:`, emails.reason);
+      }
+      if (meetings.status === 'rejected') {
+        console.error(`⚠️ Failed to get meetings for ${email}:`, meetings.reason);
+      }
+      if (documents.status === 'rejected') {
+        console.error(`⚠️ Failed to get documents for ${email}:`, documents.reason);
+      }
 
       console.log(`📈 Data summary:`, {
         emails: customerEmails.length,
@@ -79,6 +97,18 @@ export class Customer360Service {
       };
     } catch (error) {
       console.error(`❌ Error getting customer profile for ${email}:`, error);
+      
+      // Check for specific Microsoft Graph errors
+      if (error instanceof Error) {
+        if (error.message.includes('Id is malformed')) {
+          console.error(`❌ Malformed ID error - likely an email address was used where a Graph ID was expected`);
+          console.error(`❌ This usually happens when an email address is passed to an API that expects a user/object ID`);
+        }
+        if (error.message.includes('Forbidden') || error.message.includes('Insufficient privileges')) {
+          console.error(`❌ Permission error - check that the app has the required Graph API permissions`);
+        }
+      }
+      
       return null;
     }
   }
@@ -90,9 +120,25 @@ export class Customer360Service {
     try {
       console.log(`🔍 Searching for existing contact: ${email}`);
       
+      // Validate email format
+      if (!this.isValidEmail(email)) {
+        console.error(`❌ Invalid email format: ${email}`);
+        return null;
+      }
+      
       // First try to find existing contact
+      console.log(`🔍 Searching for existing contact with email: ${email}`);
       const contacts = await this.crmService.searchContacts(email);
       console.log(`📋 Found ${contacts.length} existing contacts`);
+      
+      if (contacts.length > 0) {
+        console.log(`📋 Contact details:`, contacts.map(c => ({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          source: c.source
+        })));
+      }
       
       const existingContact = contacts.find(c => c.email.toLowerCase() === email.toLowerCase());
       
@@ -103,7 +149,7 @@ export class Customer360Service {
 
       console.log(`👤 Creating new contact for ${email}`);
       
-      // If not found, try to get info from Microsoft Graph
+      // If not found, try to get info from Microsoft Graph (with error handling)
       const userInfo = await this.getUserInfoFromGraph(email);
       
       // Create new contact
@@ -158,6 +204,12 @@ export class Customer360Service {
     try {
       console.log(`🔍 Customer360Service: Getting emails for ${email}`);
       
+      // Validate email before making API calls
+      if (!this.isValidEmail(email)) {
+        console.error(`❌ Invalid email format for search: ${email}`);
+        return [];
+      }
+      
       // First try the sender-specific search, then the general search
       const [senderEmails, searchEmails] = await Promise.allSettled([
         graphServiceManager.mail.getEmailsFromSender(email),
@@ -170,6 +222,20 @@ export class Customer360Service {
         senderCount: senderEmails.status === 'fulfilled' ? senderEmails.value.length : 0,
         searchCount: searchEmails.status === 'fulfilled' ? searchEmails.value.length : 0
       });
+
+      // Log specific errors for debugging
+      if (senderEmails.status === 'rejected') {
+        console.error('❌ Sender email search failed:', senderEmails.reason);
+        if (senderEmails.reason?.message?.includes('Id is malformed')) {
+          console.error('❌ Malformed ID in sender search - this might be a Graph API issue');
+        }
+      }
+      if (searchEmails.status === 'rejected') {
+        console.error('❌ General email search failed:', searchEmails.reason);
+        if (searchEmails.reason?.message?.includes('Id is malformed')) {
+          console.error('❌ Malformed ID in general search - this might be a Graph API issue');
+        }
+      }
 
       const emails: CustomerEmail[] = [];
       const processedIds = new Set<string>(); // Avoid duplicates
@@ -365,12 +431,45 @@ export class Customer360Service {
    */
   private async getUserInfoFromGraph(email: string): Promise<any> {
     try {
-      // Try to get user info from Graph API
-      // This is a placeholder - would need proper Graph API integration
+      console.log(`🔍 Getting user info from Graph for: ${email}`);
+      
+      // Validate email format before making API calls
+      if (!this.isValidEmail(email)) {
+        console.warn(`⚠️ Invalid email format, skipping Graph lookup: ${email}`);
+        return {};
+      }
+      
+      // Try to search for the user by email in the People API (safer than Users API)
+      const people = await graphServiceManager.people?.fuzzySearchPeople(email);
+      if (people && people.length > 0) {
+        // Find exact email match or use first result
+        const exactMatch = people.find(p => 
+          p.scoredEmailAddresses?.some(e => e.address.toLowerCase() === email.toLowerCase())
+        );
+        const person = exactMatch || people[0];
+        
+        console.log(`✅ Found person info from Graph: ${person.displayName}`);
+        return {
+          displayName: person.displayName,
+          jobTitle: person.jobTitle,
+          company: person.companyName,
+          phone: person.phones?.[0]?.number,
+          location: person.officeLocation
+        };
+      }
+      
+      console.log(`ℹ️ No user info found in Graph for: ${email}`);
       return {};
     } catch (error) {
+      console.warn(`⚠️ Error getting user info from Graph for ${email}:`, error);
+      // Don't throw - just return empty object as fallback
       return {};
     }
+  }
+
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   }
 
   private extractNameFromEmail(email: string): string {

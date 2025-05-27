@@ -61,7 +61,16 @@ export function MailboxDetail({ email, onViewCustomer }: MailboxDetailProps) {
             <Button variant="outline" size="sm" onClick={() => {
               console.log('📧 MailboxDetail: See in CRM clicked');
               console.log('📧 MailboxDetail: email.senderEmail:', email.senderEmail);
+              console.log('📧 MailboxDetail: email object:', email);
               console.log('📧 MailboxDetail: calling onViewCustomer with:', email.senderEmail);
+              
+              // Validate email before calling
+              if (!email.senderEmail || !email.senderEmail.includes('@')) {
+                console.error('❌ Invalid email address:', email.senderEmail);
+                alert('Invalid email address. Cannot proceed to CRM.');
+                return;
+              }
+              
               onViewCustomer(email.senderEmail);
             }}>
               <Users className="h-4 w-4 mr-2" />

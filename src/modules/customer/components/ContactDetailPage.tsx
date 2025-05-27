@@ -55,30 +55,46 @@ export function ContactDetailPage({ contactId, onBack }: ContactDetailPageProps)
   useEffect(() => {
     const loadContactData = async () => {
       try {
+        console.log(`👤 ContactDetailPage: Loading contact data for: ${contactId}`);
         setLoading(true);
         setError(null);
 
-        // Try to get contact from CRM service first
-        const contactData = await graphCRMService.getContact(contactId);
+        // Check if contactId is an email address
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactId);
         
-        if (contactData) {
-          setContact(contactData);
-          
-          // Get comprehensive customer profile
-          const profile = await customer360Service.getCustomerProfile(contactData.email);
-          setCustomerProfile(profile);
-        } else {
-          // If no contact found by ID, it might be an email address
+        if (isEmail) {
+          console.log(`📧 ContactDetailPage: Detected email address, getting customer profile: ${contactId}`);
+          // If it's an email address, go directly to customer profile
           const profile = await customer360Service.getCustomerProfile(contactId);
           if (profile) {
             setCustomerProfile(profile);
             setContact(profile.contact);
+            console.log(`✅ ContactDetailPage: Customer profile loaded for email: ${contactId}`);
           } else {
+            console.error(`❌ ContactDetailPage: No customer profile found for email: ${contactId}`);
+            setError('Customer profile not found');
+          }
+        } else {
+          console.log(`🆔 ContactDetailPage: Detected contact ID, getting contact: ${contactId}`);
+          // If it's a contact ID, try to get contact from CRM service first
+          const contactData = await graphCRMService.getContact(contactId);
+          
+          if (contactData) {
+            console.log(`✅ ContactDetailPage: Contact found: ${contactData.name}`);
+            setContact(contactData);
+            
+            // Get comprehensive customer profile
+            console.log(`📧 ContactDetailPage: Getting customer profile for: ${contactData.email}`);
+            const profile = await customer360Service.getCustomerProfile(contactData.email);
+            setCustomerProfile(profile);
+            console.log(`✅ ContactDetailPage: Customer profile loaded`);
+          } else {
+            console.error(`❌ ContactDetailPage: No contact found with ID: ${contactId}`);
             setError('Contact not found');
           }
         }
       } catch (err) {
-        console.error('Error loading contact data:', err);
+        console.error('❌ ContactDetailPage: Error loading contact data:', err);
         setError('Failed to load contact data');
       } finally {
         setLoading(false);

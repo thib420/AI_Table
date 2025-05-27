@@ -51,6 +51,22 @@ export class GraphCRMService {
   // Get a specific contact by ID
   async getContact(contactId: string): Promise<Contact | null> {
     try {
+      console.log(`🔍 GraphCRMService: getContact called with ID: ${contactId}`);
+      
+      // Check if contactId is actually an email address - this should not happen
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactId);
+      if (isEmail) {
+        console.error(`❌ Email address passed to getContact instead of contact ID: ${contactId}`);
+        console.error(`❌ This will cause "Id is malformed" error. Use searchContacts instead.`);
+        return null;
+      }
+      
+      // Validate that contactId looks like a proper Graph ID
+      if (!contactId || contactId.trim().length === 0) {
+        console.error(`❌ Empty or invalid contact ID: ${contactId}`);
+        return null;
+      }
+      
       await graphServiceManager.initialize();
       // Try to find in different Graph sources
       const [graphContact, person, user] = await Promise.allSettled([
@@ -61,13 +77,15 @@ export class GraphCRMService {
       ]);
 
       if (graphContact.status === 'fulfilled' && graphContact.value) {
+        console.log(`✅ Contact found by ID: ${graphContact.value.displayName}`);
         const crmContact = graphDataTransformers.contactToCRM(graphContact.value);
         return this.crmContactToContact(crmContact);
       }
 
+      console.log(`ℹ️ No contact found with ID: ${contactId}`);
       return null;
     } catch (error) {
-      console.error('Error fetching contact:', error);
+      console.error('❌ Error fetching contact:', error);
       return null;
     }
   }
@@ -75,28 +93,54 @@ export class GraphCRMService {
   // Search contacts across all Graph sources
   async searchContacts(searchTerm: string): Promise<Contact[]> {
     try {
+      console.log(`🔍 GraphCRMService: Searching contacts for term: ${searchTerm}`);
+      
+      // Validate search term
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        console.warn('⚠️ Empty search term provided');
+        return [];
+      }
+      
       await graphServiceManager.initialize();
       const [graphContacts, people] = await Promise.allSettled([
-        withRetry(() => graphServiceManager.contacts.searchContacts(searchTerm)),
-        withRetry(() => graphServiceManager.people?.fuzzySearchPeople(searchTerm) || Promise.resolve([]))
+        withRetry(() => {
+          console.log(`📧 Searching Graph contacts for: ${searchTerm}`);
+          return graphServiceManager.contacts.searchContacts(searchTerm);
+        }),
+        withRetry(() => {
+          console.log(`👤 Searching People API for: ${searchTerm}`);
+          return graphServiceManager.people?.fuzzySearchPeople(searchTerm) || Promise.resolve([]);
+        })
       ]);
 
       let allCRMContacts: CRMContact[] = [];
 
       if (graphContacts.status === 'fulfilled') {
+        console.log(`✅ Graph contacts search successful: ${graphContacts.value.length} results`);
         const crmContacts = graphDataTransformers.contactsToCRM(graphContacts.value);
         allCRMContacts.push(...crmContacts);
+      } else {
+        console.error('❌ Graph contacts search failed:', graphContacts.reason);
+        // Check for specific errors
+        if (graphContacts.reason?.message?.includes('Id is malformed')) {
+          console.error('❌ Malformed ID error in contacts search - this should be fixed with email address filtering');
+        }
       }
 
       if (people.status === 'fulfilled') {
+        console.log(`✅ People API search successful: ${people.value.length} results`);
         const crmPeople = graphDataTransformers.peopleToCRM(people.value);
         allCRMContacts.push(...crmPeople);
+      } else {
+        console.error('❌ People API search failed:', people.reason);
       }
 
       const uniqueContacts = graphDataTransformers.mergeDuplicateContacts(allCRMContacts);
+      console.log(`📊 Total unique contacts found: ${uniqueContacts.length}`);
+      
       return uniqueContacts.map(this.crmContactToContact);
     } catch (error) {
-      console.error('Error searching contacts:', error);
+      console.error('❌ Error searching contacts:', error);
       return [];
     }
   }
