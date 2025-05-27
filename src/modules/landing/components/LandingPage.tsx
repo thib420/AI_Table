@@ -52,53 +52,86 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
         <div className="container mx-auto text-center max-w-4xl">
           <Badge variant="secondary" className="mb-6 bg-blue-50 text-blue-700 border-blue-200">
             <Star className="w-3 h-3 mr-1" />
-            Trusted by 500+ Companies
+            Alpha Pre-Release v0.1
           </Badge>
           
           <h1 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900 leading-tight">
-            Transform Your
+            Your <span className="bg-gradient-to-r from-slate-800 to-blue-500 bg-clip-text text-transparent">AI-Powered</span>
             <br />
-            <span className="bg-gradient-to-r from-slate-800 to-blue-500 bg-clip-text text-transparent">Professional Network</span>
-            <br />
-            Into Revenue
+            Business Assistant
           </h1>
           
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-            Stop wasting time on manual research. Our AI-powered platform helps you find, analyze, and connect with the right professionals to grow your business faster.
+            Transform your Microsoft workspace into a powerful CRM. Manage emails, schedule meetings, track leads, and boost productivity with AI-driven insights.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
             <Button 
               onClick={onGetStarted} 
               size="lg" 
-              className="bg-gradient-to-r from-slate-800 to-blue-600 hover:from-slate-900 hover:to-blue-700 text-white text-lg px-8 py-4 h-auto"
+              className="bg-gradient-to-r from-slate-800 to-blue-600 hover:from-slate-900 hover:to-blue-700 text-white text-lg px-8 py-4 h-auto flex items-center justify-center"
             >
-              Start Free Trial
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M0 0h11.377v11.372H0V0zm12.623 0H24v11.372H12.623V0zM0 12.623h11.377V24H0V12.623zm12.623 0H24V24H12.623V12.623z"/>
+              </svg>
+              Get Started with Microsoft
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button 
-              variant="outline" 
-              size="lg" 
-              className="text-lg px-8 py-4 h-auto border-gray-300 text-gray-700 hover:bg-gray-50"
-              onClick={() => setIsDemoModalOpen(true)}
-            >
-              Watch Demo
-            </Button>
           </div>
+          
+          <p className="text-sm text-gray-500 mb-12">
+            No setup required • Works instantly with your Microsoft account
+          </p>
 
-          {/* Social Proof Numbers */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-blue-500 bg-clip-text text-transparent">2.5M+</div>
-              <div className="text-sm text-gray-500">Profiles Analyzed</div>
+          {/* Key Features */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mt-1">
+                <Check className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="text-sm text-gray-600">
+                No setup required - works instantly with your Microsoft account
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-blue-500 bg-clip-text text-transparent">94%</div>
-              <div className="text-sm text-gray-500">Accuracy Rate</div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mt-1">
+                <Check className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="text-sm text-gray-600">
+                Complete Outlook integration with advanced CRM features
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-blue-500 bg-clip-text text-transparent">3.2x</div>
-              <div className="text-sm text-gray-500">Faster Results</div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mt-1">
+                <Check className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="text-sm text-gray-600">
+                AI-powered insights to boost your productivity
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mt-1">
+                <Check className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="text-sm text-gray-600">
+                Secure, enterprise-grade Microsoft authentication
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mt-1">
+                <Check className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="text-sm text-gray-600">
+                Real-time synchronization across all devices
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mt-1">
+                <Check className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="text-sm text-gray-600">
+                Professional email management with CRM capabilities
+              </div>
             </div>
           </div>
         </div>
@@ -157,8 +190,8 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
 
             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
               <CardHeader>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                  <Zap className="h-6 w-6 text-green-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Zap className="h-6 w-6 text-blue-600" />
                 </div>
                 <CardTitle className="text-gray-900">Instant Enrichment</CardTitle>
                 <CardDescription className="text-gray-600">
@@ -169,8 +202,8 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
 
             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
               <CardHeader>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                  <Users className="h-6 w-6 text-purple-600" />
+                <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="h-6 w-6 text-slate-600" />
                 </div>
                 <CardTitle className="text-gray-900">Smart Organization</CardTitle>
                 <CardDescription className="text-gray-600">
@@ -181,8 +214,8 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
 
             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
               <CardHeader>
-                <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                  <Globe className="h-6 w-6 text-indigo-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Globe className="h-6 w-6 text-blue-600" />
                 </div>
                 <CardTitle className="text-gray-900">Global Coverage</CardTitle>
                 <CardDescription className="text-gray-600">
@@ -193,8 +226,8 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
 
             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
               <CardHeader>
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                  <TrendingUp className="h-6 w-6 text-orange-600" />
+                <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mb-4">
+                  <TrendingUp className="h-6 w-6 text-slate-600" />
                 </div>
                 <CardTitle className="text-gray-900">Performance Analytics</CardTitle>
                 <CardDescription className="text-gray-600">
@@ -205,8 +238,8 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
 
             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
               <CardHeader>
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-                  <Shield className="h-6 w-6 text-red-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Shield className="h-6 w-6 text-blue-600" />
                 </div>
                 <CardTitle className="text-gray-900">Enterprise Security</CardTitle>
                 <CardDescription className="text-gray-600">
