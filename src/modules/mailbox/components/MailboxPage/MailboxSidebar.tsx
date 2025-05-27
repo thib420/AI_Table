@@ -1,27 +1,34 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Inbox, Star, Send, Mail, Archive, Calendar, Users, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Inbox, Star, Send, Mail, Archive, Calendar, Users, RefreshCw, CheckCircle2, Folder, Trash2 } from 'lucide-react';
 import { contactSyncService } from '../../services/ContactSyncService';
-import { Email } from './useMailbox';
+import { Email, MailboxFolder } from './useMailbox';
 import { ContactSyncSettingsButton } from '../ContactSyncSettings';
-
-type MailboxView = 'inbox' | 'sent' | 'drafts' | 'archive' | 'starred';
 
 interface MailboxSidebarProps {
   currentView: string;
-  setCurrentView: (view: MailboxView) => void;
+  setCurrentView: (view: string) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  inboxUnread: number;
-  starredCount: number;
+  folders: MailboxFolder[];
   onViewCRM?: () => void;
   onViewCustomer?: (email: string) => void;
   selectedEmail?: Email | null;
   allEmails?: Email[]; // Add emails for manual sync
 }
 
-export function MailboxSidebar({ currentView, setCurrentView, searchQuery, setSearchQuery, inboxUnread, starredCount, onViewCRM, onViewCustomer, selectedEmail, allEmails = [] }: MailboxSidebarProps) {
+export function MailboxSidebar({ 
+  currentView, 
+  setCurrentView, 
+  searchQuery, 
+  setSearchQuery, 
+  folders,
+  onViewCRM, 
+  onViewCustomer, 
+  selectedEmail, 
+  allEmails = [] 
+}: MailboxSidebarProps) {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [syncStats, setSyncStats] = useState<{ synced: number; skipped: number; errors: number } | null>(null);
 
@@ -52,6 +59,24 @@ export function MailboxSidebar({ currentView, setCurrentView, searchQuery, setSe
       }, 3000);
     }
   };
+
+  // Get icon component for folder
+  const getFolderIcon = (iconName?: string) => {
+    switch (iconName) {
+      case 'Inbox': return Inbox;
+      case 'Send': return Send;
+      case 'Mail': return Mail;
+      case 'Archive': return Archive;
+      case 'Star': return Star;
+      case 'Trash': return Trash2;
+      case 'Folder':
+      default: return Folder;
+    }
+  };
+
+  // Calculate starred count from all emails
+  const starredCount = allEmails.filter(e => e.isStarred).length;
+
   return (
     <div className="w-56 border-r bg-muted/20 flex-shrink-0">
       <div className="p-4 space-y-2">
@@ -64,17 +89,30 @@ export function MailboxSidebar({ currentView, setCurrentView, searchQuery, setSe
             className="pl-10"
           />
         </div>
-        {/* Navigation */}
+        
+        {/* Navigation - Dynamic Folders */}
         <div className="space-y-1">
-          <Button
-            variant={currentView === 'inbox' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setCurrentView('inbox')}
-          >
-            <Inbox className="h-4 w-4 mr-3" />
-            Inbox
-            <span className="ml-auto text-xs">{inboxUnread}</span>
-          </Button>
+          {folders.map((folder) => {
+            const IconComponent = getFolderIcon(folder.icon);
+            const isActive = currentView === folder.id;
+            
+            return (
+              <Button
+                key={folder.id}
+                variant={isActive ? 'default' : 'ghost'}
+                className="w-full justify-start"
+                onClick={() => setCurrentView(folder.id)}
+              >
+                <IconComponent className="h-4 w-4 mr-3" />
+                {folder.displayName}
+                {folder.unreadCount > 0 && (
+                  <span className="ml-auto text-xs">{folder.unreadCount}</span>
+                )}
+              </Button>
+            );
+          })}
+          
+          {/* Starred is special - not a real folder but a filter */}
           <Button
             variant={currentView === 'starred' ? 'default' : 'ghost'}
             className="w-full justify-start"
@@ -83,30 +121,6 @@ export function MailboxSidebar({ currentView, setCurrentView, searchQuery, setSe
             <Star className="h-4 w-4 mr-3" />
             Starred
             <span className="ml-auto text-xs">{starredCount}</span>
-          </Button>
-          <Button
-            variant={currentView === 'sent' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setCurrentView('sent')}
-          >
-            <Send className="h-4 w-4 mr-3" />
-            Sent
-          </Button>
-          <Button
-            variant={currentView === 'drafts' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setCurrentView('drafts')}
-          >
-            <Mail className="h-4 w-4 mr-3" />
-            Drafts
-          </Button>
-          <Button
-            variant={currentView === 'archive' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setCurrentView('archive')}
-          >
-            <Archive className="h-4 w-4 mr-3" />
-            Archive
           </Button>
         </div>
         {/* Quick Actions */}

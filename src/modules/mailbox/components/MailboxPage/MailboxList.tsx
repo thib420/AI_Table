@@ -1,7 +1,7 @@
 import React from 'react';
 import { Email } from './useMailbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Paperclip } from 'lucide-react';
+import { Star, Paperclip, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MailboxListProps {
@@ -9,12 +9,18 @@ interface MailboxListProps {
   selectedEmailId: string | null;
   onSelect: (email: Email) => void;
   onToggleStar?: (email: Email) => void;
+  onDelete?: (email: Email) => void;
 }
 
-export function MailboxList({ emails, selectedEmailId, onSelect, onToggleStar }: MailboxListProps) {
+export function MailboxList({ emails, selectedEmailId, onSelect, onToggleStar, onDelete }: MailboxListProps) {
   const handleStarClick = (e: React.MouseEvent, email: Email) => {
     e.stopPropagation(); // Prevent email selection
     onToggleStar?.(email);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, email: Email) => {
+    e.stopPropagation(); // Prevent email selection
+    onDelete?.(email);
   };
 
   return (
@@ -46,6 +52,17 @@ export function MailboxList({ emails, selectedEmailId, onSelect, onToggleStar }:
                   >
                     <Star className={`h-3 w-3 ${email.isStarred ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} />
                   </Button>
+                  {onDelete && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-1 hover:bg-transparent hover:text-red-500"
+                      onClick={(e) => handleDeleteClick(e, email)}
+                      title="Delete email"
+                    >
+                      <Trash2 className="h-3 w-3 text-muted-foreground hover:text-red-500" />
+                    </Button>
+                  )}
                   <span className="text-xs text-muted-foreground">{email.displayTime}</span>
                 </div>
               </div>

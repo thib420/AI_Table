@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useMailbox } from './MailboxPage/useMailbox';
+import { useMailbox, Email } from './MailboxPage/useMailbox';
 import { MailboxSidebar } from './MailboxPage/MailboxSidebar';
 import { MailboxList } from './MailboxPage/MailboxList';
 import { MailboxDetail } from './MailboxPage/MailboxDetail';
@@ -24,6 +24,7 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
   const {
     emails,
     allEmails,
+    folders,
     selectedEmail,
     setSelectedEmail,
     searchQuery,
@@ -35,6 +36,7 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
     isConnected,
     refreshEmails,
     toggleStar,
+    deleteEmail,
   } = useMailbox();
 
   // Helper for viewing CRM - navigates to CRM module
@@ -52,6 +54,16 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
   const handleViewCustomer = (email: string) => {
     if (onCustomerView) {
       onCustomerView(email);
+    }
+  };
+
+  // Helper for email deletion - immediate action
+  const handleDeleteEmail = async (email: Email) => {
+    try {
+      await deleteEmail(email);
+    } catch (error) {
+      console.error('Failed to delete email:', error);
+      alert('Failed to delete email. Please try again.');
     }
   };
 
@@ -253,8 +265,7 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
             setCurrentView={setCurrentView}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            inboxUnread={allEmails.filter(e => e.folder === 'inbox' && !e.isRead).length}
-            starredCount={allEmails.filter(e => e.isStarred).length}
+            folders={folders}
             onViewCRM={handleViewCRM}
             onViewCustomer={onCustomerView ? handleViewCustomer : undefined}
             selectedEmail={selectedEmail}
@@ -265,11 +276,9 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
             <div className="w-80 border-r flex flex-col flex-shrink-0">
               <div className="p-4 border-b bg-muted/20">
                 <h3 className="font-medium text-sm">
-                  {currentView === 'inbox' ? 'Inbox' : 
-                   currentView === 'starred' ? 'Starred' :
-                   currentView === 'sent' ? 'Sent' :
-                   currentView === 'drafts' ? 'Drafts' :
-                   currentView === 'archive' ? 'Archive' : 'Emails'}
+                  {currentView === 'starred' 
+                    ? 'Starred'
+                    : folders.find(f => f.id === currentView)?.displayName || 'Emails'}
                   <span className="ml-2 text-xs text-muted-foreground">
                     ({emails.length})
                   </span>
@@ -280,6 +289,7 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
                 selectedEmailId={selectedEmail?.id || null}
                 onSelect={setSelectedEmail}
                 onToggleStar={toggleStar}
+                onDelete={handleDeleteEmail}
               />
             </div>
             {/* Email Content */}

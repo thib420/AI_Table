@@ -9,4 +9,4 @@ export { microsoftGraphService, MicrosoftGraphService } from './services/microso
 export { MicrosoftAuthProvider, useMicrosoftAuth } from './services/MicrosoftAuthContext';
 
 // Types
-export type { Email } from './components/MailboxPage/useMailbox'; 
+export type { Email, MailboxFolder } from './components/MailboxPage/useMailbox'; 

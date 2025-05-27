@@ -78,6 +78,16 @@ export class MicrosoftGraphService {
     await graphServiceManager.mail.setFlag(messageId, flagged);
   }
 
+  async deleteEmail(messageId: string): Promise<void> {
+    await this.ensureInitialized();
+    await graphServiceManager.mail.deleteEmail(messageId);
+  }
+
+  async moveEmail(messageId: string, destinationFolderId: string): Promise<any> {
+    await this.ensureInitialized();
+    return await graphServiceManager.mail.moveEmail(messageId, destinationFolderId);
+  }
+
   async getUserProfile() {
     await this.ensureInitialized();
     return await graphServiceManager.getCurrentUser();

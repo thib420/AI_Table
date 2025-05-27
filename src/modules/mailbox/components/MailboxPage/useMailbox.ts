@@ -1,8 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Message } from '@microsoft/microsoft-graph-types';
+import { Message, MailFolder } from '@microsoft/microsoft-graph-types';
 import { microsoftGraphService } from '../../services/microsoft-graph';
 import { useMicrosoftAuth } from '../../services/MicrosoftAuthContext';
 import { contactSyncService } from '../../services/ContactSyncService';
+
+export interface MailboxFolder {
+  id: string;
+  displayName: string;
+  unreadCount: number;
+  totalCount: number;
+  isSystemFolder: boolean;
+  icon?: string;
+  graphId?: string; // The actual Microsoft Graph folder ID
+}
 
 export interface Email {
   id: string;
@@ -14,7 +24,8 @@ export interface Email {
   isRead: boolean;
   isStarred: boolean;
   hasAttachments: boolean;
-  folder: 'inbox' | 'sent' | 'drafts' | 'archive' | 'trash';
+  folder: string; // Changed from union type to string to support custom folder IDs
+  folderId?: string; // Add explicit folder ID
   avatarUrl?: string;
   displayTime?: string;
   webLink?: string;
@@ -80,7 +91,7 @@ function getAvatarUrl(name: string) {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=64&background=${backgroundColor}&color=fff&bold=true&format=png`;
 }
 
-function convertGraphMessageToEmail(message: Message, folderType: string = 'inbox'): Email {
+function convertGraphMessageToEmail(message: Message, folderType: string = 'inbox', folderId?: string): Email {
   const senderName = message.sender?.emailAddress?.name || message.from?.emailAddress?.name || 'Unknown Sender';
   const senderEmail = message.sender?.emailAddress?.address || message.from?.emailAddress?.address || '';
   
@@ -94,10 +105,11 @@ function convertGraphMessageToEmail(message: Message, folderType: string = 'inbo
     isRead: message.isRead || false,
     isStarred: message.flag?.flagStatus === 'flagged',
     hasAttachments: message.hasAttachments || false,
-    folder: folderType as any,
+    folder: folderType,
+    folderId: folderId,
     avatarUrl: getAvatarUrl(senderName),
     displayTime: formatTimestamp(message.receivedDateTime || new Date().toISOString()),
-    webLink: message.webLink,
+    webLink: message.webLink || undefined,
     graphMessage: message,
   };
 }
@@ -106,9 +118,10 @@ export function useMailbox() {
   const { isSignedIn, isLoading: authLoading } = useMicrosoftAuth();
   const [emails, setEmails] = useState<Email[]>([]);
   const [allEmails, setAllEmails] = useState<Email[]>([]);
+  const [folders, setFolders] = useState<MailboxFolder[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentView, setCurrentView] = useState<'inbox' | 'sent' | 'drafts' | 'archive' | 'starred'>('inbox');
+  const [currentView, setCurrentView] = useState<string>('inbox');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -118,9 +131,11 @@ export function useMailbox() {
       if (authLoading) return;
 
       if (isSignedIn) {
+        await loadMailFolders();
         await loadMicrosoftEmails();
       } else {
         // Use mock data when not signed in
+        setFolders(getDefaultFolders());
         const processedMockEmails = mockEmails.map(email => ({
           ...email,
           avatarUrl: getAvatarUrl(email.sender),
@@ -142,6 +157,91 @@ export function useMailbox() {
     initializeData();
   }, [isSignedIn, authLoading]);
 
+  // Get default system folders for demo mode
+  const getDefaultFolders = (): MailboxFolder[] => [
+    { id: 'inbox', displayName: 'Inbox', unreadCount: 3, totalCount: 15, isSystemFolder: true, icon: 'Inbox' },
+    { id: 'sent', displayName: 'Sent Items', unreadCount: 0, totalCount: 8, isSystemFolder: true, icon: 'Send' },
+    { id: 'drafts', displayName: 'Drafts', unreadCount: 0, totalCount: 2, isSystemFolder: true, icon: 'Mail' },
+    { id: 'deletedItems', displayName: 'Deleted Items', unreadCount: 0, totalCount: 12, isSystemFolder: true, icon: 'Trash' },
+    { id: 'archive', displayName: 'Archive', unreadCount: 0, totalCount: 45, isSystemFolder: true, icon: 'Archive' },
+    { id: 'starred', displayName: 'Starred', unreadCount: 1, totalCount: 5, isSystemFolder: true, icon: 'Star' },
+  ];
+
+  // Load mail folders from Microsoft Graph
+  const loadMailFolders = useCallback(async () => {
+    if (!isSignedIn) return;
+
+    try {
+      console.log('📁 Loading mail folders from Microsoft Graph...');
+      const graphFolders = await microsoftGraphService.getMailFolders();
+      
+      const systemFolders = getDefaultFolders();
+      const customFolders: MailboxFolder[] = [];
+
+      // Update system folders with actual Graph folder IDs and counts
+      const updatedSystemFolders = systemFolders.map(sysFolder => {
+        const matchingGraphFolder = graphFolders.find(f => 
+          isMatchingSystemFolder(f.displayName || '', sysFolder.id)
+        );
+        
+        if (matchingGraphFolder) {
+          return {
+            ...sysFolder,
+            id: sysFolder.id, // Keep our system ID for consistency
+            graphId: matchingGraphFolder.id, // Store the actual Graph ID separately
+            unreadCount: matchingGraphFolder.unreadItemCount || 0,
+            totalCount: matchingGraphFolder.totalItemCount || 0,
+          };
+        }
+        return sysFolder;
+      });
+
+      // Add custom folders (excluding system folders)
+      graphFolders.forEach(folder => {
+        if (!isSystemFolderName(folder.displayName || '')) {
+          customFolders.push({
+            id: `custom_${folder.id}`, // Prefix to avoid conflicts with system folder IDs
+            displayName: folder.displayName || 'Unnamed Folder',
+            unreadCount: folder.unreadItemCount || 0,
+            totalCount: folder.totalItemCount || 0,
+            isSystemFolder: false,
+            icon: 'Folder',
+            graphId: folder.id // Store the actual Graph ID
+          });
+        }
+      });
+
+      // Create final folder list with guaranteed unique IDs
+      const allFolders = [...updatedSystemFolders, ...customFolders];
+      
+      setFolders(allFolders);
+      console.log(`✅ Loaded ${updatedSystemFolders.length} system folders and ${customFolders.length} custom folders`);
+    } catch (error) {
+      console.error('❌ Failed to load mail folders:', error);
+      // Fallback to default folders
+      setFolders(getDefaultFolders());
+    }
+  }, [isSignedIn]);
+
+  // Helper function to check if a folder name is a system folder
+  const isSystemFolderName = (folderName: string): boolean => {
+    const systemNames = ['inbox', 'sent items', 'drafts', 'deleted items', 'junk email', 'outbox'];
+    return systemNames.includes(folderName.toLowerCase());
+  };
+
+  // Helper function to match Graph folder names to our system folder IDs
+  const isMatchingSystemFolder = (graphFolderName: string, systemFolderId: string): boolean => {
+    const folderName = graphFolderName.toLowerCase();
+    switch (systemFolderId) {
+      case 'inbox': return folderName === 'inbox';
+      case 'sent': return folderName === 'sent items';
+      case 'drafts': return folderName === 'drafts';
+      case 'deletedItems': return folderName === 'deleted items';
+      case 'archive': return folderName === 'archive';
+      default: return false;
+    }
+  };
+
   const loadMicrosoftEmails = useCallback(async () => {
     if (!isSignedIn) return;
 
@@ -149,23 +249,77 @@ export function useMailbox() {
     setError(null);
 
     try {
-      // Get inbox emails
-      const inboxMessages = await microsoftGraphService.getEmails('inbox', 50);
-      const inboxEmails = inboxMessages.map(msg => convertGraphMessageToEmail(msg, 'inbox'));
+      console.log('📧 Loading emails from Microsoft Graph...');
+      const emailIdMap = new Map<string, Email>(); // Track emails by ID to prevent duplicates
 
-      // Get sent emails
-      const sentMessages = await microsoftGraphService.getEmails('sentitems', 20);
-      const sentEmails = sentMessages.map(msg => convertGraphMessageToEmail(msg, 'sent'));
+      // Load emails from system folders
+      const systemFolderMappings = [
+        { id: 'inbox', graphId: 'inbox', displayName: 'Inbox' },
+        { id: 'sent', graphId: 'sentitems', displayName: 'Sent Items' },
+        { id: 'drafts', graphId: 'drafts', displayName: 'Drafts' },
+        { id: 'deletedItems', graphId: 'deleteditems', displayName: 'Deleted Items' },
+      ];
 
-      // Combine all emails
-      const combinedEmails = [...inboxEmails, ...sentEmails];
+      for (const folderMapping of systemFolderMappings) {
+        try {
+          console.log(`📂 Loading emails from ${folderMapping.displayName}...`);
+          
+          // Find the actual folder to get the real graphId if available
+          const actualFolder = folders.find(f => f.id === folderMapping.id);
+          const graphIdToUse = actualFolder?.graphId || folderMapping.graphId;
+          
+          const messages = await microsoftGraphService.getEmails(graphIdToUse, 50);
+          const folderEmails = messages.map(msg => 
+            convertGraphMessageToEmail(msg, folderMapping.id, graphIdToUse)
+          );
+          
+          // Add emails to map, preventing duplicates
+          folderEmails.forEach(email => {
+            if (!emailIdMap.has(email.id)) {
+              emailIdMap.set(email.id, email);
+            }
+          });
+          
+          console.log(`✅ Loaded ${folderEmails.length} emails from ${folderMapping.displayName}`);
+        } catch (error) {
+          console.error(`❌ Failed to load emails from ${folderMapping.displayName}:`, error);
+        }
+      }
+
+      // Load emails from custom folders
+      const customFolders = folders.filter(f => !f.isSystemFolder);
+      for (const folder of customFolders) {
+        try {
+          console.log(`📂 Loading emails from custom folder: ${folder.displayName}...`);
+          const graphIdToUse = folder.graphId || folder.id.replace('custom_', '');
+          const messages = await microsoftGraphService.getEmails(graphIdToUse, 20);
+          const folderEmails = messages.map(msg => 
+            convertGraphMessageToEmail(msg, folder.id, graphIdToUse)
+          );
+          
+          // Add emails to map, preventing duplicates
+          folderEmails.forEach(email => {
+            if (!emailIdMap.has(email.id)) {
+              emailIdMap.set(email.id, email);
+            }
+          });
+          
+          console.log(`✅ Loaded ${folderEmails.length} emails from ${folder.displayName}`);
+        } catch (error) {
+          console.error(`❌ Failed to load emails from ${folder.displayName}:`, error);
+        }
+      }
       
-      setAllEmails(combinedEmails);
+      // Convert map back to array
+      const deduplicatedEmails = Array.from(emailIdMap.values());
+      
+      setAllEmails(deduplicatedEmails);
+      console.log(`✅ Total unique emails loaded: ${deduplicatedEmails.length}`);
       
       // Automatically sync contacts from emails to CRM in the background
-      if (combinedEmails.length > 0) {
+      if (deduplicatedEmails.length > 0) {
         console.log('🔄 useMailbox: Starting automatic contact sync to CRM...');
-        contactSyncService.syncContactsInBackground(combinedEmails).catch(error => {
+        contactSyncService.syncContactsInBackground(deduplicatedEmails).catch(error => {
           console.error('❌ useMailbox: Background contact sync failed:', error);
         });
       }
@@ -198,7 +352,7 @@ export function useMailbox() {
     } finally {
       setIsLoading(false);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, folders]);
 
   // Mark email as read in Microsoft Graph
   const markAsRead = useCallback(async (email: Email) => {
@@ -232,17 +386,57 @@ export function useMailbox() {
     }
   }, [isSignedIn]);
 
-  // Refresh emails
+  // Delete email from Microsoft Graph and local state
+  const deleteEmail = useCallback(async (email: Email) => {
+    try {
+      // If connected to Microsoft Graph, move to Deleted Items folder
+      if (isSignedIn && email.graphMessage?.id) {
+        // Find the Deleted Items folder
+        const deletedItemsFolder = folders.find(f => f.id === 'deletedItems');
+        const deletedItemsGraphId = deletedItemsFolder?.graphId || 'deleteditems';
+        
+        // Move the email to Deleted Items folder
+        await microsoftGraphService.moveEmail(email.graphMessage.id, deletedItemsGraphId);
+        
+        // Update local state - move email to deletedItems folder instead of removing it
+        setAllEmails(prev => prev.map(e => 
+          e.id === email.id 
+            ? { ...e, folder: 'deletedItems', folderId: deletedItemsGraphId }
+            : e
+        ));
+        
+        console.log('✅ Email moved to Deleted Items:', email.subject);
+      } else {
+        // For demo mode or when not connected, just remove from local state
+        setAllEmails(prev => prev.filter(e => e.id !== email.id));
+        console.log('✅ Email removed from demo mode:', email.subject);
+      }
+      
+      // If the deleted email was selected, clear selection
+      if (selectedEmail?.id === email.id) {
+        setSelectedEmail(null);
+      }
+      
+    } catch (error) {
+      console.error('Error deleting email:', error);
+      throw error;
+    }
+  }, [isSignedIn, selectedEmail, folders]);
+
+  // Refresh emails and folders
   const refreshEmails = useCallback(async () => {
     if (isSignedIn) {
+      await loadMailFolders();
       await loadMicrosoftEmails();
     }
-  }, [isSignedIn, loadMicrosoftEmails]);
+  }, [isSignedIn, loadMailFolders, loadMicrosoftEmails]);
 
   // Filter emails based on current view and search
   const filteredEmails = allEmails.filter(email => {
     // Filter by view
     if (currentView === 'starred') return email.isStarred;
+    
+    // For system and custom folders, match by our folder ID
     return email.folder === currentView;
   }).filter(email =>
     // Filter by search query
@@ -262,6 +456,7 @@ export function useMailbox() {
   return {
     emails: filteredEmails,
     allEmails,
+    folders,
     selectedEmail,
     setSelectedEmail,
     searchQuery,
@@ -273,6 +468,8 @@ export function useMailbox() {
     isConnected: isSignedIn,
     markAsRead,
     toggleStar,
+    deleteEmail,
     refreshEmails,
+    loadMailFolders,
   };
 } 
