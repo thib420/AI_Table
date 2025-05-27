@@ -37,6 +37,7 @@ export function AppLayout({
     handleColumnFilterChange,
     handleColumnSortChange,
     clearAllFilters,
+    handleRowSelection,
     deleteSelectedRows,
     getCompleteSearchState
   } = useSearchState(currentPrompt, setCurrentPrompt, recentSearches, setRecentSearches);
@@ -138,6 +139,7 @@ export function AppLayout({
                 onAddAIColumn={addAIColumn}
                 onLoadMoreResults={loadMoreResults}
                 onSave={handleSave}
+                onRowSelection={handleRowSelection}
                 isAddingAIColumn={searchState.isAddingAIColumn}
                 selectedRowsCount={searchState.selectedRows.size}
               />

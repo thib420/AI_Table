@@ -291,6 +291,13 @@ export function useSearchState(
     });
   }, []);
 
+  const handleRowSelection = useCallback((selectedRows: Set<number>) => {
+    setSearchState(prev => ({
+      ...prev,
+      selectedRows
+    }));
+  }, []);
+
   const deleteSelectedRows = useCallback(() => {
     setSearchState(prev => {
       const indicesToDelete = Array.from(prev.selectedRows).sort((a, b) => b - a);
@@ -331,6 +338,7 @@ export function useSearchState(
     handleColumnFilterChange,
     handleColumnSortChange,
     clearAllFilters,
+    handleRowSelection,
     deleteSelectedRows,
     getCompleteSearchState
   };

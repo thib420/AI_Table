@@ -76,6 +76,7 @@ export interface SearchResultsProps {
   onAddAIColumn: (columnName: string, prompt: string) => void;
   onLoadMoreResults: () => void;
   onSave: () => void;
+  onRowSelection: (selectedRows: Set<number>) => void;
   isAddingAIColumn: boolean;
   selectedRowsCount: number;
 } 

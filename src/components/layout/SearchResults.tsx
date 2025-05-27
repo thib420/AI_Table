@@ -18,6 +18,7 @@ export function SearchResults({
   onAddAIColumn,
   onLoadMoreResults,
   onSave,
+  onRowSelection,
   isAddingAIColumn,
   selectedRowsCount
 }: SearchResultsProps) {
@@ -244,8 +245,40 @@ export function SearchResults({
             columns={searchState.columns}
             isAddingAIColumn={searchState.isAddingAIColumn}
             aiProcessing={searchState.aiProcessing}
-            selectedRows={searchState.selectedRows}
-            onRowSelection={(selectedRows) => {}} // This would need to be handled by parent
+            selectedRows={(() => {
+              // Map selected indices from original results to sortedResults indices
+              const sortedIndices = new Set<number>();
+              searchState.selectedRows.forEach(originalIndex => {
+                const originalItem = searchState.enrichedResults[originalIndex];
+                if (originalItem) {
+                  const sortedIndex = searchState.sortedResults.findIndex(item => 
+                    item.id === originalItem.id || 
+                    (item.url === originalItem.url && item.author === originalItem.author)
+                  );
+                  if (sortedIndex !== -1) {
+                    sortedIndices.add(sortedIndex);
+                  }
+                }
+              });
+              return sortedIndices;
+            })()}
+            onRowSelection={(selectedRows) => {
+              // Map the selected indices from sortedResults back to original results indices
+              const originalIndices = new Set<number>();
+              selectedRows.forEach(sortedIndex => {
+                const sortedItem = searchState.sortedResults[sortedIndex];
+                if (sortedItem) {
+                  const originalIndex = searchState.enrichedResults.findIndex(item => 
+                    item.id === sortedItem.id || 
+                    (item.url === sortedItem.url && item.author === sortedItem.author)
+                  );
+                  if (originalIndex !== -1) {
+                    originalIndices.add(originalIndex);
+                  }
+                }
+              });
+              onRowSelection(originalIndices);
+            }}
             columnFilters={searchState.columnFilters}
             onColumnFiltersChange={(filters) => {
               // Note: ResultsTable expects a different interface - this would need refactoring
