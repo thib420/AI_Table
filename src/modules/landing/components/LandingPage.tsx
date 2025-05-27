@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, Sparkles, Shield, ArrowRight, Check, Globe, Database, Brain, Target } from 'lucide-react';
+import { ArrowRight, Check, Star, Users, TrendingUp, Target, Zap, Shield, Globe, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,55 +13,66 @@ interface LandingPageProps {
 
 export function LandingPage({ onGetStarted }: LandingPageProps) {
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  const toggleFaq = (index: number) => {
+    setExpandedFaq(expandedFaq === index ? null : index);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                <Search className="h-4 w-4 text-white" />
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/logo.png" 
+                alt="Converr" 
+                className="w-10 h-10 rounded-lg"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Converr</h1>
+                <p className="text-xs text-gray-500">Professional Intelligence</p>
               </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                AI Table
-              </h1>
             </div>
-            <Button onClick={onGetStarted} className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            <nav className="hidden md:flex items-center space-x-8">
+              <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Features</a>
+              <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
+              <a href="#testimonials" className="text-gray-600 hover:text-gray-900 transition-colors">Success Stories</a>
+              <Button onClick={onGetStarted} className="bg-gradient-to-r from-purple-600 to-red-600 hover:from-purple-700 hover:to-red-700 text-white">
+                Get Started
+              </Button>
+            </nav>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 px-6">
+      <section className="py-24 px-6 bg-gradient-to-b from-gray-50 to-white">
         <div className="container mx-auto text-center max-w-4xl">
-          <Badge variant="secondary" className="mb-6 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300">
-            <Sparkles className="w-3 h-3 mr-1" />
-            AI-Powered Professional Search
+          <Badge variant="secondary" className="mb-6 bg-blue-50 text-blue-700 border-blue-200">
+            <Star className="w-3 h-3 mr-1" />
+            Trusted by 500+ Companies
           </Badge>
           
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
-            Find & Analyze
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900 leading-tight">
+            Transform Your
             <br />
-            Professional Profiles
+            <span className="bg-gradient-to-r from-purple-600 to-red-600 bg-clip-text text-transparent">Professional Network</span>
             <br />
-            <span className="text-4xl md:text-5xl">with AI Intelligence</span>
+            Into Revenue
           </h1>
           
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-            Transform your professional networking and recruitment with AI-powered profile analysis. 
-            Search LinkedIn profiles, extract insights, and build comprehensive contact databases in minutes.
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Stop wasting time on manual research. Our AI-powered platform helps you find, analyze, and connect with the right professionals to grow your business faster.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button 
               onClick={onGetStarted} 
               size="lg" 
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-lg px-8 py-6"
+              className="bg-gradient-to-r from-purple-600 to-red-600 hover:from-purple-700 hover:to-red-700 text-white text-lg px-8 py-4 h-auto"
             >
               Start Free Trial
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -69,110 +80,138 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             <Button 
               variant="outline" 
               size="lg" 
-              className="text-lg px-8 py-6"
+              className="text-lg px-8 py-4 h-auto border-gray-300 text-gray-700 hover:bg-gray-50"
               onClick={() => setIsDemoModalOpen(true)}
             >
               Watch Demo
             </Button>
           </div>
 
-          {/* Stats */}
+          {/* Social Proof Numbers */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">10M+</div>
-              <div className="text-sm text-muted-foreground">Profiles Analyzed</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-red-600 bg-clip-text text-transparent">2.5M+</div>
+              <div className="text-sm text-gray-500">Profiles Analyzed</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">95%</div>
-              <div className="text-sm text-muted-foreground">Accuracy Rate</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-red-600 bg-clip-text text-transparent">94%</div>
+              <div className="text-sm text-gray-500">Accuracy Rate</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-indigo-600">50+</div>
-              <div className="text-sm text-muted-foreground">AI Insights</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-red-600 bg-clip-text text-transparent">3.2x</div>
+              <div className="text-sm text-gray-500">Faster Results</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-6 bg-muted/30">
+      {/* Problem Statement */}
+      <section className="py-20 px-6">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="text-3xl font-bold mb-6 text-gray-900">
+            The Challenge Every Business Faces
+          </h2>
+          <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
+            Finding the right people to grow your business shouldn't take weeks of manual research. 
+            Yet most companies waste countless hours on LinkedIn searches, outdated databases, and ineffective outreach.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-6 bg-red-50 rounded-lg border border-red-100">
+              <div className="text-red-600 font-semibold mb-2">Time Wasted</div>
+              <div className="text-gray-700">Hours spent on manual research instead of building relationships</div>
+            </div>
+            <div className="p-6 bg-orange-50 rounded-lg border border-orange-100">
+              <div className="text-orange-600 font-semibold mb-2">Poor Data Quality</div>
+              <div className="text-gray-700">Outdated contact information and incomplete profiles</div>
+            </div>
+            <div className="p-6 bg-yellow-50 rounded-lg border border-yellow-100">
+              <div className="text-yellow-600 font-semibold mb-2">Low Response Rates</div>
+              <div className="text-gray-700">Generic outreach that doesn't resonate with prospects</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Solution Section */}
+      <section id="features" className="py-20 px-6 bg-gray-50">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Powerful Features for Modern Professionals</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to find, analyze, and connect with the right professionals
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">The Smart Solution</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              AI Table combines advanced AI with professional data to give you everything you need to find and connect with the right people.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
               <CardHeader>
-                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-4">
-                  <Search className="h-6 w-6 text-purple-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Target className="h-6 w-6 text-blue-600" />
                 </div>
-                <CardTitle>Smart Profile Search</CardTitle>
-                <CardDescription>
-                  Find professionals using natural language queries. Search by role, company, location, or skills.
+                <CardTitle className="text-gray-900">Intelligent Search</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Find professionals using natural language. Search by role, company, industry, or specific skills with AI-powered precision.
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
               <CardHeader>
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4">
-                  <Brain className="h-6 w-6 text-blue-600" />
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                  <Zap className="h-6 w-6 text-green-600" />
                 </div>
-                <CardTitle>AI-Powered Analysis</CardTitle>
-                <CardDescription>
-                  Extract insights like company size, seniority level, contact information, and decision-making power.
+                <CardTitle className="text-gray-900">Instant Enrichment</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Automatically extract contact details, company insights, and decision-making power from professional profiles.
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
               <CardHeader>
-                <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-4">
-                  <Database className="h-6 w-6 text-green-600" />
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="h-6 w-6 text-purple-600" />
                 </div>
-                <CardTitle>Dynamic Tables</CardTitle>
-                <CardDescription>
-                  Organize data in customizable tables with sortable columns and real-time AI enrichment.
+                <CardTitle className="text-gray-900">Smart Organization</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Organize prospects in dynamic tables with custom columns, filters, and AI-generated insights for better targeting.
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
               <CardHeader>
-                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mb-4">
-                  <Target className="h-6 w-6 text-orange-600" />
-                </div>
-                <CardTitle>Contact Extraction</CardTitle>
-                <CardDescription>
-                  Automatically extract emails, phone numbers, locations, and optimal contact methods.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
                   <Globe className="h-6 w-6 text-indigo-600" />
                 </div>
-                <CardTitle>Global Reach</CardTitle>
-                <CardDescription>
-                  Search across multiple regions and languages with intelligent profile matching.
+                <CardTitle className="text-gray-900">Global Coverage</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Access professional data from multiple regions and platforms with comprehensive coverage and real-time updates.
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
               <CardHeader>
-                <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900 rounded-lg flex items-center justify-center mb-4">
-                  <Shield className="h-6 w-6 text-pink-600" />
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+                  <TrendingUp className="h-6 w-6 text-orange-600" />
                 </div>
-                <CardTitle>Enterprise Security</CardTitle>
-                <CardDescription>
-                  Bank-level security with encrypted data storage and compliance with privacy regulations.
+                <CardTitle className="text-gray-900">Performance Analytics</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Track your outreach performance with detailed analytics and AI-powered recommendations for improvement.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
+              <CardHeader>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+                  <Shield className="h-6 w-6 text-red-600" />
+                </div>
+                <CardTitle className="text-gray-900">Enterprise Security</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Bank-level security with encrypted data storage, GDPR compliance, and enterprise-grade privacy protection.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -184,155 +223,235 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
       <section className="py-20 px-6">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">How It Works</h2>
-            <p className="text-xl text-muted-foreground">
-              Get started in minutes with our intuitive workflow
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">How It Works</h2>
+            <p className="text-xl text-gray-600">
+              Get results in minutes, not hours
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-white">1</span>
               </div>
-              <h3 className="text-xl font-semibold mb-4">Search Profiles</h3>
-              <p className="text-muted-foreground">
-                Enter your search query using natural language. Find professionals by role, company, or skills.
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">Describe Your Target</h3>
+              <p className="text-gray-600">
+                Tell us who you're looking for using natural language. "CTOs at fintech startups in London" or "Marketing directors at SaaS companies."
               </p>
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-white">2</span>
               </div>
-              <h3 className="text-xl font-semibold mb-4">AI Analysis</h3>
-              <p className="text-muted-foreground">
-                Our AI automatically extracts insights and enriches profiles with valuable business intelligence.
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">AI Finds & Enriches</h3>
+              <p className="text-gray-600">
+                Our AI searches across multiple sources, finds matching profiles, and automatically enriches them with contact details and insights.
               </p>
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-white">3</span>
               </div>
-              <h3 className="text-xl font-semibold mb-4">Export & Connect</h3>
-              <p className="text-muted-foreground">
-                Export your enriched data or use our built-in tools to reach out to your target prospects.
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">Connect & Convert</h3>
+              <p className="text-gray-600">
+                Export your enriched prospect list or use our built-in tools to create personalized outreach campaigns that convert.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="py-20 px-6 bg-muted/30">
-        <div className="container mx-auto max-w-5xl">
+      {/* Testimonials */}
+      <section id="testimonials" className="py-20 px-6 bg-gray-50">
+        <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-xl text-muted-foreground">
-              Choose the plan that fits your needs
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">What Our Customers Say</h2>
+            <p className="text-xl text-gray-600">
+              Join hundreds of companies already growing with AI Table
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="border-2 border-muted">
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Starter</CardTitle>
-                <div className="text-4xl font-bold mt-4">$29<span className="text-lg font-normal text-muted-foreground">/month</span></div>
-                <CardDescription className="mt-2">Perfect for individuals and small teams</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  <li className="flex items-center">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    100 profile searches/month
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    Basic AI insights
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    CSV export
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    Email support
-                  </li>
-                </ul>
-                <Button className="w-full mt-6" variant="outline">
-                  Get Started
-                </Button>
+            <Card className="border-0 shadow-sm bg-white">
+              <CardContent className="p-6">
+                <div className="flex items-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-700 mb-4">
+                  "AI Table reduced our prospecting time by 80%. We went from spending days on research to finding qualified leads in minutes."
+                </p>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-blue-600 font-semibold">SJ</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">Sarah Johnson</div>
+                    <div className="text-sm text-gray-500">VP Sales, TechCorp</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-purple-500 relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">
-                  Most Popular
-                </Badge>
-              </div>
+            <Card className="border-0 shadow-sm bg-white">
+              <CardContent className="p-6">
+                <div className="flex items-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-700 mb-4">
+                  "The AI insights are incredibly accurate. We're now targeting the right decision-makers and our response rates have tripled."
+                </p>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-green-600 font-semibold">MC</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">Michael Chen</div>
+                    <div className="text-sm text-gray-500">Head of Growth, StartupXYZ</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm bg-white">
+              <CardContent className="p-6">
+                <div className="flex items-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-700 mb-4">
+                  "Finally, a tool that understands our complex B2B needs. The data quality is exceptional and the interface is intuitive."
+                </p>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-purple-600 font-semibold">ER</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">Emma Rodriguez</div>
+                    <div className="text-sm text-gray-500">Marketing Director, Enterprise Co</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-20 px-6">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">Simple, Transparent Pricing</h2>
+            <p className="text-xl text-gray-600">
+              Choose the plan that fits your business needs
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="border border-gray-200 shadow-sm">
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Professional</CardTitle>
-                <div className="text-4xl font-bold mt-4">$99<span className="text-lg font-normal text-muted-foreground">/month</span></div>
-                <CardDescription className="mt-2">For growing businesses and teams</CardDescription>
+                <CardTitle className="text-2xl text-gray-900">Starter</CardTitle>
+                <div className="text-4xl font-bold mt-4 text-gray-900">€49<span className="text-lg font-normal text-gray-500">/month</span></div>
+                <CardDescription className="mt-2 text-gray-600">Perfect for small teams</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
                   <li className="flex items-center">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    1,000 profile searches/month
+                    <span className="text-gray-700">500 profile searches/month</span>
                   </li>
                   <li className="flex items-center">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    Advanced AI insights
+                    <span className="text-gray-700">Basic AI insights</span>
                   </li>
                   <li className="flex items-center">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    Custom AI columns
+                    <span className="text-gray-700">CSV export</span>
                   </li>
                   <li className="flex items-center">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    API access
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-4 w-4 text-green-500 mr-2" />
-                    Priority support
+                    <span className="text-gray-700">Email support</span>
                   </li>
                 </ul>
-                <Button className="w-full mt-6 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
+                <Button className="w-full mt-6" variant="outline">
                   Start Free Trial
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-muted">
+            <Card className="border-2 border-purple-500 shadow-lg relative">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-gradient-to-r from-purple-600 to-red-600 text-white">
+                  Most Popular
+                </Badge>
+              </div>
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Enterprise</CardTitle>
-                <div className="text-4xl font-bold mt-4">Custom</div>
-                <CardDescription className="mt-2">For large organizations</CardDescription>
+                <CardTitle className="text-2xl text-gray-900">Professional</CardTitle>
+                <div className="text-4xl font-bold mt-4 text-gray-900">€149<span className="text-lg font-normal text-gray-500">/month</span></div>
+                <CardDescription className="mt-2 text-gray-600">For growing businesses</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
                   <li className="flex items-center">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    Unlimited searches
+                    <span className="text-gray-700">2,500 profile searches/month</span>
                   </li>
                   <li className="flex items-center">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    Custom AI models
+                    <span className="text-gray-700">Advanced AI insights</span>
                   </li>
                   <li className="flex items-center">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    White-label solution
+                    <span className="text-gray-700">Custom AI columns</span>
                   </li>
                   <li className="flex items-center">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    Dedicated support
+                    <span className="text-gray-700">API access</span>
                   </li>
                   <li className="flex items-center">
                     <Check className="h-4 w-4 text-green-500 mr-2" />
-                    SLA guarantee
+                    <span className="text-gray-700">Priority support</span>
+                  </li>
+                </ul>
+                <Button className="w-full mt-6 bg-gradient-to-r from-purple-600 to-red-600 hover:from-purple-700 hover:to-red-700 text-white">
+                  Start Free Trial
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-gray-200 shadow-sm">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl text-gray-900">Enterprise</CardTitle>
+                <div className="text-4xl font-bold mt-4 text-gray-900">Custom</div>
+                <CardDescription className="mt-2 text-gray-600">For large organizations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-green-500 mr-2" />
+                    <span className="text-gray-700">Unlimited searches</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-green-500 mr-2" />
+                    <span className="text-gray-700">Custom AI models</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-green-500 mr-2" />
+                    <span className="text-gray-700">White-label solution</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-green-500 mr-2" />
+                    <span className="text-gray-700">Dedicated support</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Check className="h-4 w-4 text-green-500 mr-2" />
+                    <span className="text-gray-700">SLA guarantee</span>
                   </li>
                 </ul>
                 <Button className="w-full mt-6" variant="outline">
@@ -344,20 +463,78 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-6">
+      {/* FAQ Section */}
+      <section className="py-20 px-6 bg-gray-50">
+        <div className="container mx-auto max-w-3xl">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">Frequently Asked Questions</h2>
+            <p className="text-xl text-gray-600">
+              Everything you need to know about AI Table
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                question: "How accurate is the AI-powered data enrichment?",
+                answer: "Our AI achieves 94% accuracy in data enrichment by combining multiple data sources and advanced machine learning algorithms. We continuously validate and update our data to ensure the highest quality."
+              },
+              {
+                question: "Can I integrate AI Table with my existing CRM?",
+                answer: "Yes, AI Table integrates seamlessly with popular CRMs like Salesforce, HubSpot, and Pipedrive. You can export data directly or use our API for real-time synchronization."
+              },
+              {
+                question: "Is my data secure and compliant with privacy regulations?",
+                answer: "Absolutely. We use bank-level encryption, are GDPR compliant, and follow strict data protection protocols. Your data is never shared with third parties and is stored securely in European data centers."
+              },
+              {
+                question: "How does the free trial work?",
+                answer: "You get 14 days of full access to all Professional plan features, including 100 free searches. No credit card required to start, and you can upgrade or cancel anytime."
+              },
+              {
+                question: "What kind of support do you provide?",
+                answer: "We offer email support for all plans, priority support for Professional users, and dedicated account management for Enterprise customers. Our average response time is under 2 hours."
+              }
+            ].map((faq, index) => (
+              <Card key={index} className="border border-gray-200">
+                <CardHeader 
+                  className="cursor-pointer"
+                  onClick={() => toggleFaq(index)}
+                >
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg text-gray-900">{faq.question}</CardTitle>
+                    <ChevronDown 
+                      className={`h-5 w-5 text-gray-500 transition-transform ${
+                        expandedFaq === index ? 'transform rotate-180' : ''
+                      }`}
+                    />
+                  </div>
+                </CardHeader>
+                {expandedFaq === index && (
+                  <CardContent>
+                    <p className="text-gray-600">{faq.answer}</p>
+                  </CardContent>
+                )}
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-20 px-6 bg-gradient-to-r from-purple-600 to-red-600">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-4xl font-bold mb-6">
-            Ready to Transform Your Professional Search?
+          <h2 className="text-4xl font-bold mb-6 text-white">
+            Ready to Transform Your Business Development?
           </h2>
-          <p className="text-xl text-muted-foreground mb-8">
-            Join thousands of professionals who are already using AI Table to find and connect with the right people.
+          <p className="text-xl text-purple-100 mb-8">
+            Join hundreds of companies already using Converr to find and connect with the right professionals. Start your free trial today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               onClick={onGetStarted} 
               size="lg" 
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-lg px-8 py-6"
+              className="bg-white text-purple-600 hover:bg-gray-50 text-lg px-8 py-4 h-auto"
             >
               Start Your Free Trial
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -365,63 +542,71 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             <Button 
               variant="outline" 
               size="lg" 
-              className="text-lg px-8 py-6"
+              className="text-lg px-8 py-4 h-auto border-white text-white hover:bg-white hover:text-purple-600"
               onClick={() => setIsDemoModalOpen(true)}
             >
               Schedule Demo
             </Button>
           </div>
+          <p className="text-sm text-purple-200 mt-4">
+            No credit card required • 14-day free trial • Cancel anytime
+          </p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/30 py-12 px-6">
+      <footer className="border-t bg-white py-12 px-6">
         <div className="container mx-auto max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <Search className="h-4 w-4 text-white" />
-                </div>
-                <h3 className="text-lg font-bold">AI Table</h3>
+              <div className="flex items-center space-x-3 mb-4">
+                <img 
+                  src="/logo.png" 
+                  alt="Converr" 
+                  className="w-8 h-8 rounded-lg"
+                />
+                <h3 className="text-lg font-bold text-gray-900">Converr</h3>
               </div>
-              <p className="text-sm text-muted-foreground">
-                AI-powered professional search and analysis platform.
+              <p className="text-sm text-gray-600 mb-4">
+                AI-powered professional intelligence platform for modern businesses.
+              </p>
+              <p className="text-xs text-gray-500">
+                Made with ❤️ in Switzerland
               </p>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Features</li>
-                <li>Pricing</li>
-                <li>API</li>
-                <li>Integrations</li>
+              <h4 className="font-semibold mb-4 text-gray-900">Product</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li><a href="#features" className="hover:text-gray-900">Features</a></li>
+                <li><a href="#pricing" className="hover:text-gray-900">Pricing</a></li>
+                <li><a href="#" className="hover:text-gray-900">API</a></li>
+                <li><a href="#" className="hover:text-gray-900">Integrations</a></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>About</li>
-                <li>Blog</li>
-                <li>Careers</li>
-                <li>Contact</li>
+              <h4 className="font-semibold mb-4 text-gray-900">Company</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li><a href="#" className="hover:text-gray-900">About</a></li>
+                <li><a href="#" className="hover:text-gray-900">Blog</a></li>
+                <li><a href="#" className="hover:text-gray-900">Careers</a></li>
+                <li><a href="#" className="hover:text-gray-900">Contact</a></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Help Center</li>
-                <li>Documentation</li>
-                <li>Status</li>
-                <li>Privacy Policy</li>
+              <h4 className="font-semibold mb-4 text-gray-900">Support</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li><a href="#" className="hover:text-gray-900">Help Center</a></li>
+                <li><a href="#" className="hover:text-gray-900">Documentation</a></li>
+                <li><a href="#" className="hover:text-gray-900">Status</a></li>
+                <li><a href="#" className="hover:text-gray-900">Privacy Policy</a></li>
               </ul>
             </div>
           </div>
           
-          <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
+          <div className="border-t mt-8 pt-8 text-center text-sm text-gray-500">
             © 2024 AI Table. All rights reserved.
           </div>
         </div>
