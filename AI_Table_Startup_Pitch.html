@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Converr - Startup Pitch</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: white;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        .pitch-container {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            background: white;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            overflow: hidden;
+        }
+
+        .left-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            position: relative;
+        }
+
+        .app-showcase {
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .app-image {
+            width: 100%;
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border: 3px solid white;
+            background: #f1f5f9;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .app-caption {
+            margin-top: 30px;
+            font-size: 1.1rem;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .right-section {
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, #4c1d95 0%, #dc2626 100%);
+            color: white;
+            padding: 40px;
+            text-align: left;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .logo-img {
+            height: 60px;
+            width: auto;
+        }
+
+        .logo-text {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            font-weight: 300;
+            opacity: 0.9;
+            margin-bottom: 25px;
+        }
+
+        .value-prop {
+            font-size: 1.4rem;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .content-section {
+            padding: 40px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4c1d95, #dc2626);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .features-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 25px;
+            color: #1e293b;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .feature-card {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-left: 4px solid #4c1d95;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #4c1d95, #dc2626);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 16px rgba(76, 29, 149, 0.3);
+        }
+
+        .feature-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .feature-content {
+            flex: 1;
+        }
+
+        .feature-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        .feature-desc {
+            color: #64748b;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+
+        .bottom-section {
+            background: #f8fafc;
+            padding: 30px 40px;
+            margin-top: auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .founders-section {
+            text-align: left;
+        }
+
+        .founders-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+
+        .founders-grid {
+            display: flex;
+            gap: 20px;
+        }
+
+        .founder-card {
+            text-align: center;
+            flex: 1;
+        }
+
+        .founder-photo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            font-size: 1.5rem;
+            font-weight: 500;
+            border: 3px solid white;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .founder-photo::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(135deg, #4c1d95, #dc2626);
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        .founder-name {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 3px;
+            font-size: 0.9rem;
+        }
+
+        .founder-title {
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
+        .qr-section {
+            text-align: center;
+        }
+
+        .qr-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        .qr-code {
+            width: 140px;
+            height: 140px;
+            background: white;
+            border: 3px solid #e2e8f0;
+            border-radius: 16px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .qr-code::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(135deg, #4c1d95, #dc2626);
+            border-radius: 16px;
+            z-index: -1;
+        }
+
+        .website-url {
+            color: #dc2626;
+            font-weight: 500;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .pricing-highlight {
+            background: linear-gradient(135deg, #4c1d95 0%, #dc2626 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .pricing-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .price-range {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .pricing-desc {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid, .features-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+            
+            .bottom-section {
+                grid-template-columns: 1fr;
+                gap: 60px;
+            }
+            
+            .hero-section, .content-section, .bottom-section {
+                padding: 40px 30px;
+            }
+            
+            .logo {
+                font-size: 2.5rem;
+            }
+            
+            .value-prop {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pitch-container">
+        <!-- Left Section - Application Demo -->
+        <div class="left-section">
+            <div class="app-showcase">
+                <div class="app-image">
+                    YOUR APPLICATION SCREENSHOT HERE
+                </div>
+                <div class="app-caption">
+                    See Converr in action - Smart search meets instant enrichment
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section - Company Info -->
+        <div class="right-section">
+            <!-- Header -->
+            <div class="header-section">
+                <div class="logo-container">
+                    <img src="logo.png" alt="Converr Logo" class="logo-img">
+                    <div class="logo-text">Converr</div>
+                </div>
+                <div class="tagline">AI-Powered Business Intelligence</div>
+                <div class="value-prop">
+                    Transform weeks of manual research into minutes of AI-powered insights
+                </div>
+            </div>
+
+            <!-- Content Section -->
+            <div class="content-section">
+                <!-- Key Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">94%</div>
+                        <div class="stat-label">Data Accuracy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">80%</div>
+                        <div class="stat-label">Time Saved</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">3x</div>
+                        <div class="stat-label">Response Rate</div>
+                    </div>
+                </div>
+
+                <!-- Features -->
+                <div class="features-section">
+                    <h2 class="section-title">How We Do It</h2>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                            </div>
+                            <div class="feature-content">
+                                <div class="feature-title">Smart Search</div>
+                                <div class="feature-desc">Natural language queries to find your ideal prospects</div>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                                </svg>
+                            </div>
+                            <div class="feature-content">
+                                <div class="feature-title">Auto Enrichment</div>
+                                <div class="feature-desc">Instant contact details and company insights</div>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                                </svg>
+                            </div>
+                            <div class="feature-content">
+                                <div class="feature-title">Microsoft Integration</div>
+                                <div class="feature-desc">Seamless workflow with your existing tools</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pricing -->
+                <div class="pricing-highlight">
+                    <div class="pricing-title">Simple Pricing</div>
+                    <div class="price-range">€49 - €149/month</div>
+                    <div class="pricing-desc">Scalable plans from startups to enterprise</div>
+                </div>
+            </div>
+
+            <!-- Bottom Section -->
+            <div class="bottom-section">
+                <!-- Founders -->
+                <div class="founders-section">
+                    <h3 class="founders-title">Meet the Founders</h3>
+                    <div class="founders-grid">
+                        <div class="founder-card">
+                            <div class="founder-photo">CF1</div>
+                            <div class="founder-name">Co-Founder 1</div>
+                            <div class="founder-title">CEO & Co-Founder</div>
+                        </div>
+                        <div class="founder-card">
+                            <div class="founder-photo">CF2</div>
+                            <div class="founder-name">Co-Founder 2</div>
+                            <div class="founder-title">CTO & Co-Founder</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code -->
+                <div class="qr-section">
+                    <h3 class="qr-title">Try It Now</h3>
+                    <div class="qr-code">QR CODE HERE</div>
+                    <a href="#" class="website-url">www.converr.com</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
