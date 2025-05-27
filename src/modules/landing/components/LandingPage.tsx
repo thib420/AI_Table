@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DemoModal } from '@/components/common/DemoModal';
+import { StructuredData } from '@/components/seo/StructuredData';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -20,16 +21,18 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
+    <>
+      <StructuredData type="Product" />
+      <div className="min-h-screen bg-white">
+        {/* Header */}
+        <header className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <img 
                 src="/logo.png" 
                 alt="Converr" 
-                className="w-10 h-10 rounded-lg"
+                className="w-8 h-8 rounded-md"
               />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Converr</h1>
@@ -40,7 +43,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Features</a>
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
               <a href="#testimonials" className="text-gray-600 hover:text-gray-900 transition-colors">Success Stories</a>
-              <Button onClick={onGetStarted} className="bg-gradient-to-r from-purple-600 to-red-600 hover:from-purple-700 hover:to-red-700 text-white">
+              <Button onClick={onGetStarted} className="bg-gradient-to-r from-slate-800 to-blue-600 hover:from-slate-900 hover:to-blue-700 text-white">
                 Get Started
               </Button>
             </nav>
@@ -59,7 +62,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
           <h1 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900 leading-tight">
             Transform Your
             <br />
-            <span className="bg-gradient-to-r from-purple-600 to-red-600 bg-clip-text text-transparent">Professional Network</span>
+            <span className="bg-gradient-to-r from-slate-800 to-blue-500 bg-clip-text text-transparent">Professional Network</span>
             <br />
             Into Revenue
           </h1>
@@ -72,7 +75,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             <Button 
               onClick={onGetStarted} 
               size="lg" 
-              className="bg-gradient-to-r from-purple-600 to-red-600 hover:from-purple-700 hover:to-red-700 text-white text-lg px-8 py-4 h-auto"
+              className="bg-gradient-to-r from-slate-800 to-blue-600 hover:from-slate-900 hover:to-blue-700 text-white text-lg px-8 py-4 h-auto"
             >
               Start Free Trial
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -90,15 +93,15 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
           {/* Social Proof Numbers */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
             <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-red-600 bg-clip-text text-transparent">2.5M+</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-blue-500 bg-clip-text text-transparent">2.5M+</div>
               <div className="text-sm text-gray-500">Profiles Analyzed</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-red-600 bg-clip-text text-transparent">94%</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-blue-500 bg-clip-text text-transparent">94%</div>
               <div className="text-sm text-gray-500">Accuracy Rate</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-red-600 bg-clip-text text-transparent">3.2x</div>
+              <div className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-blue-500 bg-clip-text text-transparent">3.2x</div>
               <div className="text-sm text-gray-500">Faster Results</div>
             </div>
           </div>
@@ -231,7 +234,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-slate-700 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-white">1</span>
               </div>
               <h3 className="text-xl font-semibold mb-4 text-gray-900">Describe Your Target</h3>
@@ -241,7 +244,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-slate-700 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-white">2</span>
               </div>
               <h3 className="text-xl font-semibold mb-4 text-gray-900">AI Finds & Enriches</h3>
@@ -251,7 +254,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-slate-700 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-white">3</span>
               </div>
               <h3 className="text-xl font-semibold mb-4 text-gray-900">Connect & Convert</h3>
@@ -385,9 +388,9 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-purple-500 shadow-lg relative">
+            <Card className="border-2 border-slate-400 shadow-lg relative">
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-gradient-to-r from-purple-600 to-red-600 text-white">
+                <Badge className="bg-gradient-to-r from-slate-700 to-blue-500 text-white">
                   Most Popular
                 </Badge>
               </div>
@@ -419,7 +422,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
                     <span className="text-gray-700">Priority support</span>
                   </li>
                 </ul>
-                <Button className="w-full mt-6 bg-gradient-to-r from-purple-600 to-red-600 hover:from-purple-700 hover:to-red-700 text-white">
+                <Button className="w-full mt-6 bg-gradient-to-r from-slate-700 to-blue-500 hover:from-slate-800 hover:to-blue-600 text-white">
                   Start Free Trial
                 </Button>
               </CardContent>
@@ -522,19 +525,19 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-20 px-6 bg-gradient-to-r from-purple-600 to-red-600">
+      <section className="py-20 px-6 bg-gradient-to-r from-slate-800 to-blue-600">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-4xl font-bold mb-6 text-white">
             Ready to Transform Your Business Development?
           </h2>
-          <p className="text-xl text-purple-100 mb-8">
+          <p className="text-xl text-blue-100 mb-8">
             Join hundreds of companies already using Converr to find and connect with the right professionals. Start your free trial today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               onClick={onGetStarted} 
               size="lg" 
-              className="bg-white text-purple-600 hover:bg-gray-50 text-lg px-8 py-4 h-auto"
+              className="bg-white text-slate-700 hover:bg-gray-50 text-lg px-8 py-4 h-auto"
             >
               Start Your Free Trial
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -542,13 +545,13 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             <Button 
               variant="outline" 
               size="lg" 
-              className="text-lg px-8 py-4 h-auto border-white text-white hover:bg-white hover:text-purple-600"
+              className="text-lg px-8 py-4 h-auto border-white text-white hover:bg-white hover:text-slate-700"
               onClick={() => setIsDemoModalOpen(true)}
             >
               Schedule Demo
             </Button>
           </div>
-          <p className="text-sm text-purple-200 mt-4">
+          <p className="text-sm text-blue-200 mt-4">
             No credit card required • 14-day free trial • Cancel anytime
           </p>
         </div>
@@ -563,7 +566,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
                 <img 
                   src="/logo.png" 
                   alt="Converr" 
-                  className="w-8 h-8 rounded-lg"
+                  className="w-8 h-8 rounded-md"
                 />
                 <h3 className="text-lg font-bold text-gray-900">Converr</h3>
               </div>
@@ -618,5 +621,6 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
         onClose={() => setIsDemoModalOpen(false)} 
       />
     </div>
+    </>
   );
 } 

@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Block API routes and internal paths
+Disallow: /api/
+Disallow: /_next/
+Disallow: /auth/callback/
+
+# Allow important pages
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /about
+Allow: /contact
+
+# Sitemap location
+Sitemap: https://converr.ai/sitemap.xml 
