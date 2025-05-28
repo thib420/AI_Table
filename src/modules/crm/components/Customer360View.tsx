@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { CustomerProfile, CustomerInteraction } from '../types';
+import { CustomerProfile, CustomerInteraction, Contact } from '../types';
 import { customer360Service } from '../services/Customer360Service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,8 +28,10 @@ import {
   Paperclip,
   AlertCircle,
   Wifi,
-  WifiOff
+  WifiOff,
+  Edit
 } from 'lucide-react';
+import { EditContactDialog } from './EditContactDialog';
 
 interface Customer360ViewProps {
   customerEmail: string;
@@ -41,6 +43,10 @@ export function Customer360View({ customerEmail, onBack }: Customer360ViewProps)
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
   useEffect(() => {
     console.log('🎯 Customer360View: Component mounted with email:', customerEmail);
@@ -69,6 +75,22 @@ export function Customer360View({ customerEmail, onBack }: Customer360ViewProps)
     } finally {
       console.log('🎯 Customer360View: Loading finished');
       setIsLoading(false);
+    }
+  };
+
+  const handleEditContact = () => {
+    if (customerProfile?.contact) {
+      setEditingContact(customerProfile.contact);
+      setEditDialogOpen(true);
+    }
+  };
+
+  const handleContactUpdated = (updatedContact: Contact) => {
+    if (customerProfile) {
+      setCustomerProfile({
+        ...customerProfile,
+        contact: updatedContact
+      });
     }
   };
 
@@ -228,6 +250,10 @@ export function Customer360View({ customerEmail, onBack }: Customer360ViewProps)
                   ${contact.dealValue.toLocaleString()}
                 </div>
                 <p className="text-sm text-muted-foreground">Deal Value</p>
+                <Button variant="outline" size="sm" onClick={handleEditContact} className="mt-2">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Contact
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -443,6 +469,17 @@ export function Customer360View({ customerEmail, onBack }: Customer360ViewProps)
           </Card>
         </div>
       </div>
+      
+      {/* Edit Contact Dialog */}
+      <EditContactDialog
+        contact={editingContact}
+        isOpen={editDialogOpen}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setEditingContact(null);
+        }}
+        onSave={handleContactUpdated}
+      />
     </div>
   );
 } 

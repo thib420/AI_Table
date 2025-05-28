@@ -40,6 +40,7 @@ import { graphCRMService } from '@/modules/crm/services/GraphCRMService';
 import { customer360Service } from '@/modules/crm/services/Customer360Service';
 import { Contact } from '@/modules/crm/types';
 import { CustomerProfile, CustomerInteraction } from '@/modules/crm/types';
+import { EditContactDialog } from '@/modules/crm/components/EditContactDialog';
 
 interface ContactDetailPageProps {
   contactId: string;
@@ -51,6 +52,10 @@ export function ContactDetailPage({ contactId, onBack }: ContactDetailPageProps)
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
   useEffect(() => {
     const loadContactData = async () => {
@@ -192,6 +197,24 @@ export function ContactDetailPage({ contactId, onBack }: ContactDetailPageProps)
     }
   };
 
+  const handleEditContact = () => {
+    if (contact) {
+      setEditingContact(contact);
+      setEditDialogOpen(true);
+    }
+  };
+
+  const handleContactUpdated = (updatedContact: Contact) => {
+    setContact(updatedContact);
+    // Also update the contact in customer profile if it exists
+    if (customerProfile) {
+      setCustomerProfile({
+        ...customerProfile,
+        contact: updatedContact
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -267,7 +290,7 @@ export function ContactDetailPage({ contactId, onBack }: ContactDetailPageProps)
           </div>
 
           <div className="flex items-center space-x-2">
-            <Button variant="outline" className="mr-2">
+            <Button variant="outline" className="mr-2" onClick={handleEditContact}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Contact
             </Button>
@@ -441,6 +464,17 @@ export function ContactDetailPage({ contactId, onBack }: ContactDetailPageProps)
           </Card>
         </div>
       </div>
+      
+      {/* Edit Contact Dialog */}
+      <EditContactDialog
+        contact={editingContact}
+        isOpen={editDialogOpen}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setEditingContact(null);
+        }}
+        onSave={handleContactUpdated}
+      />
     </div>
   );
 } 
