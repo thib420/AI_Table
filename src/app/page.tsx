@@ -42,7 +42,8 @@ export default function AppPage() {
     signOut,
     hasAnyAuth,
     isMicrosoftSignedIn,
-    signInToMicrosoft 
+    signInToMicrosoft,
+    microsoftAccount
   } = useUnifiedAuth();
 
   // Debug logging for authentication state
@@ -313,6 +314,9 @@ export default function AppPage() {
         onModuleChange={handleModuleChange}
         onLogout={handleLogout}
         onCustomerView={handleCustomerView}
+        microsoftAccount={microsoftAccount}
+        isMicrosoftSignedIn={isMicrosoftSignedIn}
+        hasAnyAuth={hasAnyAuth}
       >
         {renderModuleContent()}
       </MainLayout>

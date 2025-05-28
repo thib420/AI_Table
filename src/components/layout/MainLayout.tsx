@@ -31,6 +31,9 @@ interface MainLayoutProps {
   onModuleChange: (module: 'ai-table' | 'mailbox' | 'crm' | 'email-campaign') => void;
   onLogout: () => void;
   onCustomerView?: (customerId: string) => void;
+  microsoftAccount?: any;
+  isMicrosoftSignedIn?: boolean;
+  hasAnyAuth?: boolean;
 }
 
 const navigationItems = [
@@ -74,7 +77,7 @@ const navigationItems = [
 
 
 
-export function MainLayout({ user, children, currentModule, onModuleChange, onLogout, onCustomerView }: MainLayoutProps) {
+export function MainLayout({ user, children, currentModule, onModuleChange, onLogout, onCustomerView, microsoftAccount, isMicrosoftSignedIn, hasAnyAuth }: MainLayoutProps) {
   const { theme, setTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar
   const [sidebarExpanded, setSidebarExpanded] = useState(false); // Desktop sidebar expansion
@@ -88,7 +91,7 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
 
     // If we have a full name, use it
     if (fullName) {
-      const nameParts = fullName.trim().split(' ').filter(part => part.length > 0);
+      const nameParts = fullName.trim().split(' ').filter((part: string) => part.length > 0);
       if (nameParts.length >= 2) {
         return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
       } else if (nameParts.length === 1) {
@@ -134,14 +137,61 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
       // Convert email-style names to readable format (e.g., "john.doe" -> "John Doe")
       return emailName
         .split(/[._-]/)
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
         .join(' ');
     }
 
     return 'User';
   };
 
+  // Get display info for current authenticated user (Supabase or Microsoft)
+  const getCurrentUserInfo = () => {
+    if (user) {
+      return {
+        displayName: getUserDisplayName(user),
+        email: user.email || '',
+        initials: getUserInitials(user),
+        isConnected: true,
+        authType: 'Supabase'
+      };
+    } else if (isMicrosoftSignedIn && microsoftAccount) {
+      // Microsoft user info
+      const displayName = microsoftAccount.name || microsoftAccount.username || 'Microsoft User';
+      const email = microsoftAccount.username || '';
+      
+      // Generate initials from Microsoft account
+      let initials = 'U';
+      if (microsoftAccount.name) {
+        const nameParts = microsoftAccount.name.trim().split(' ').filter((part: string) => part.length > 0);
+        if (nameParts.length >= 2) {
+          initials = `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
+        } else if (nameParts.length === 1) {
+          initials = nameParts[0].slice(0, 2).toUpperCase();
+        }
+      } else if (email) {
+        const emailName = email.split('@')[0];
+        initials = emailName.slice(0, 2).toUpperCase();
+      }
+      
+      return {
+        displayName,
+        email,
+        initials,
+        isConnected: true,
+        authType: 'Microsoft'
+      };
+    }
+    
+    return {
+      displayName: 'Not Connected',
+      email: 'Please sign in to access all features',
+      initials: 'U',
+      isConnected: false,
+      authType: 'None'
+    };
+  };
 
+  const userInfo = getCurrentUserInfo();
 
   const currentItem = navigationItems.find(item => item.id === currentModule);
 
@@ -201,14 +251,14 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={user?.user_metadata?.avatar_url} alt={user ? getUserDisplayName(user) : 'User'} />
+                    <AvatarImage src={user?.user_metadata?.avatar_url} alt={userInfo.displayName} />
                     <AvatarFallback className="text-sm">
-                      {user ? getUserInitials(user) : '?'}
+                      {userInfo.initials}
                     </AvatarFallback>
                   </Avatar>
                   {/* Connection Status Indicator */}
                   <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${
-                    user ? 'bg-green-500' : 'bg-gray-400'
+                    userInfo.isConnected ? 'bg-green-500' : 'bg-gray-400'
                   }`} />
                 </Button>
               </DropdownMenuTrigger>
@@ -217,22 +267,22 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center space-x-2">
                       <p className="text-sm font-medium leading-none">
-                        {user ? getUserDisplayName(user) : 'Not Connected'}
+                        {userInfo.displayName}
                       </p>
-                      <div className={`h-2 w-2 rounded-full ${user ? 'bg-green-500' : 'bg-gray-400'}`} />
+                      <div className={`h-2 w-2 rounded-full ${userInfo.isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
                     </div>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email || 'Please sign in to access all features'}
+                      {userInfo.email}
                     </p>
-                    {user && (
+                    {userInfo.isConnected && (
                       <p className="text-xs leading-none text-green-600 dark:text-green-400 font-medium">
-                        ● Connected
+                        ● Connected via {userInfo.authType}
                       </p>
                     )}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {user && (
+                {userInfo.isConnected && (
                   <>
                     <DropdownMenuItem>
                       <Settings className="mr-2 h-4 w-4" />
@@ -243,10 +293,10 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
                 )}
                 <DropdownMenuItem 
                   onClick={onLogout}
-                  className={user ? "text-red-600 dark:text-red-400" : ""}
+                  className={userInfo.isConnected ? "text-red-600 dark:text-red-400" : ""}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>{user ? 'Sign Out' : 'Sign In'}</span>
+                  <span>{userInfo.isConnected ? 'Sign Out' : 'Sign In'}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

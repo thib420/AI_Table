@@ -19,11 +19,19 @@ export default function AuthCallbackPage() {
         if (error) {
           console.error('Authentication error:', error);
           const errorDescription = urlParams.get('error_description') || fragment.get('error_description');
-          setStatus(`Authentication failed: ${errorDescription || error}`);
+          
+          // Handle specific redirect URI error
+          if (error === 'invalid_request' && errorDescription?.includes('redirect_uri')) {
+            setStatus('Configuration Error: The redirect URI is not configured in Azure. Please contact support.');
+          } else if (errorDescription?.includes('AADSTS50011')) {
+            setStatus('Configuration Error: The redirect URI does not match Azure app registration. Please contact support.');
+          } else {
+            setStatus(`Authentication failed: ${errorDescription || error}`);
+          }
           
           setTimeout(() => {
             router.replace('/?error=auth_failed');
-          }, 3000);
+          }, 5000); // Increased timeout for configuration errors
           return;
         }
 
@@ -65,10 +73,20 @@ export default function AuthCallbackPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
-      <p className="mt-4 text-muted-foreground">{status}</p>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-4 text-muted-foreground text-center max-w-md">{status}</p>
+      <p className="mt-2 text-xs text-muted-foreground text-center">
         If this takes too long, you will be redirected automatically.
       </p>
+      {status.includes('Configuration Error') && (
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg max-w-md">
+          <p className="text-sm text-yellow-800">
+            <strong>For Developers:</strong> Add the production redirect URI to your Azure app registration:
+          </p>
+          <code className="text-xs bg-yellow-100 px-2 py-1 rounded mt-1 block">
+            https://www.converr.ch/auth/callback
+          </code>
+        </div>
+      )}
     </div>
   );
 } 
