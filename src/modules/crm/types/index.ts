@@ -6,7 +6,7 @@ export interface Contact {
   company: string;
   position: string;
   location: string;
-  status: 'lead' | 'prospect' | 'customer' | 'inactive';
+  status: 'lead' | 'prospect' | 'customer' | 'partner' | 'vendor' | 'investor' | 'employee' | 'contractor' | 'intern' | 'inactive';
   lastContact: string;
   dealValue: number;
   avatar?: string;

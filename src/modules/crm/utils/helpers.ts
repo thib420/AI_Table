@@ -6,6 +6,18 @@ export const getStatusColor = (status: string) => {
       return 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300';
     case 'customer':
       return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
+    case 'partner':
+      return 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300';
+    case 'vendor':
+      return 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300';
+    case 'investor':
+      return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300';
+    case 'employee':
+      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300';
+    case 'contractor':
+      return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300';
+    case 'intern':
+      return 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300';
     case 'inactive':
       return 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300';
     default:

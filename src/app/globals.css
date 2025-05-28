@@ -44,9 +44,7 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: 255 255 255; /* default light */
-  --foreground: oklch(0.145 0 0);
+  --radius: 0.625rem; /* default light */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -77,14 +75,16 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   --sidebar-width: 18rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
 }
 
 .dark {
-  --background: 60 60 63; /* Lighter main background for dark mode */
+  --background: oklch(0.145 0 0); /* Lighter main background for dark mode */
   --foreground: oklch(0.985 0 0);
-  --card: 55 55 58; /* Lighter card background for dark mode */
+  --card: oklch(0.205 0 0); /* Lighter card background for dark mode */
   --card-foreground: oklch(0.985 0 0);
-  --popover: 55 55 58; /* Align popover with card */
+  --popover: oklch(0.205 0 0); /* Align popover with card */
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
@@ -129,14 +129,14 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
   }
-  
+
   .line-clamp-2 {
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
-  
+
   .line-clamp-3 {
     overflow: hidden;
     display: -webkit-box;
