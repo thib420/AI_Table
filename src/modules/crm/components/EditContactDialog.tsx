@@ -387,7 +387,7 @@ export function EditContactDialog({ contact, isOpen, onClose, onSave }: EditCont
 
             {/* Common Tags */}
             <div className="space-y-2">
-              <Label>Quick Tags</Label>
+              <Label>Quick Tags - (Categories in Outlook)</Label>
               <div className="flex flex-wrap gap-2">
                 {COMMON_TAGS.filter(tag => !customTags.includes(tag)).map((tag) => (
                   <Button
