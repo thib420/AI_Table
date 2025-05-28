@@ -4,6 +4,11 @@ import { GraphPerson, PeopleSearchOptions } from '../types';
 export class PeopleService {
   private readonly baseEndpoint = '/me/people';
 
+  // Helper function to escape single quotes for OData
+  private escapeODataString(str: string): string {
+    return str.replace(/'/g, "''");
+  }
+
   // Get people most relevant to the user
   async getRelevantPeople(options?: PeopleSearchOptions): Promise<GraphPerson[]> {
     return await graphClientService.makePaginatedRequest<GraphPerson>(this.baseEndpoint, {
@@ -54,7 +59,7 @@ export class PeopleService {
   // Get people by company
   async getPeopleByCompany(companyName: string): Promise<GraphPerson[]> {
     return await this.getRelevantPeople({
-      filter: `companyName eq '${companyName}'`,
+      filter: `companyName eq '${this.escapeODataString(companyName)}'`,
       orderBy: 'displayName'
     });
   }
@@ -62,7 +67,7 @@ export class PeopleService {
   // Get people by department
   async getPeopleByDepartment(department: string): Promise<GraphPerson[]> {
     return await this.getRelevantPeople({
-      filter: `department eq '${department}'`,
+      filter: `department eq '${this.escapeODataString(department)}'`,
       orderBy: 'displayName'
     });
   }
@@ -70,7 +75,7 @@ export class PeopleService {
   // Get people by job title
   async getPeopleByJobTitle(jobTitle: string): Promise<GraphPerson[]> {
     return await this.getRelevantPeople({
-      filter: `jobTitle eq '${jobTitle}'`,
+      filter: `jobTitle eq '${this.escapeODataString(jobTitle)}'`,
       orderBy: 'displayName'
     });
   }

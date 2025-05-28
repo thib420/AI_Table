@@ -14,6 +14,11 @@ export class ContactsService {
     return ContactsService.instance;
   }
 
+  // Helper function to escape single quotes for OData
+  private escapeODataString(str: string): string {
+    return str.replace(/'/g, "''");
+  }
+
   // Get all contacts
   async getContacts(options?: ContactsSearchOptions): Promise<GraphContact[]> {
     const endpoint = options?.folderId 
@@ -54,10 +59,10 @@ export class ContactsService {
     let filter: string;
     if (isEmail) {
       // For email addresses, search in the emailAddresses collection
-      filter = `emailAddresses/any(e:e/address eq '${searchTerm}')`;
+      filter = `emailAddresses/any(e:e/address eq '${this.escapeODataString(searchTerm)}')`;
     } else {
       // For non-email terms, search in name and company fields
-      filter = `startswith(displayName,'${searchTerm}') or startswith(givenName,'${searchTerm}') or startswith(surname,'${searchTerm}') or startswith(companyName,'${searchTerm}')`;
+      filter = `startswith(displayName,'${this.escapeODataString(searchTerm)}') or startswith(givenName,'${this.escapeODataString(searchTerm)}') or startswith(surname,'${this.escapeODataString(searchTerm)}') or startswith(companyName,'${this.escapeODataString(searchTerm)}')`;
     }
     
     return await this.getContacts({
@@ -92,7 +97,7 @@ export class ContactsService {
   // Get contacts by company
   async getContactsByCompany(companyName: string): Promise<GraphContact[]> {
     return await this.getContacts({
-      filter: `companyName eq '${companyName}'`,
+      filter: `companyName eq '${this.escapeODataString(companyName)}'`,
       orderBy: 'displayName'
     });
   }
@@ -100,7 +105,7 @@ export class ContactsService {
   // Get contacts by category
   async getContactsByCategory(category: string): Promise<GraphContact[]> {
     return await this.getContacts({
-      filter: `categories/any(c:c eq '${category}')`,
+      filter: `categories/any(c:c eq '${this.escapeODataString(category)}')`,
       orderBy: 'displayName'
     });
   }

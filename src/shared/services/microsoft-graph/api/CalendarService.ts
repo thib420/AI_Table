@@ -4,6 +4,11 @@ import { Event } from '@microsoft/microsoft-graph-types';
 export class CalendarService {
   private readonly baseEndpoint = '/me/events';
 
+  // Helper function to escape single quotes for OData
+  private escapeODataString(str: string): string {
+    return str.replace(/'/g, "''");
+  }
+
   // Get calendar events
   async getEvents(options?: {
     startTime?: string;
@@ -82,8 +87,9 @@ export class CalendarService {
 
   // Search events
   async searchEvents(searchTerm: string): Promise<Event[]> {
+    const escapedTerm = this.escapeODataString(searchTerm);
     return await graphClientService.makePaginatedRequest<Event>(this.baseEndpoint, {
-      filter: `contains(subject,'${searchTerm}') or contains(body/content,'${searchTerm}')`,
+      filter: `contains(subject,'${escapedTerm}') or contains(body/content,'${escapedTerm}')`,
       select: [
         'id', 'subject', 'start', 'end', 'location', 'attendees',
         'organizer', 'body', 'importance'
@@ -128,7 +134,7 @@ export class CalendarService {
   // Get events by location
   async getEventsByLocation(location: string): Promise<Event[]> {
     return await graphClientService.makePaginatedRequest<Event>(this.baseEndpoint, {
-      filter: `contains(location/displayName,'${location}')`,
+      filter: `contains(location/displayName,'${this.escapeODataString(location)}')`,
       select: [
         'id', 'subject', 'start', 'end', 'location', 'attendees',
         'organizer', 'importance'
@@ -159,7 +165,7 @@ export class CalendarService {
     const userEmail = currentUser.mail || currentUser.userPrincipalName;
 
     return await graphClientService.makePaginatedRequest<Event>(this.baseEndpoint, {
-      filter: `organizer/emailAddress/address eq '${userEmail}'`,
+      filter: `organizer/emailAddress/address eq '${this.escapeODataString(userEmail)}'`,
       select: [
         'id', 'subject', 'start', 'end', 'location', 'attendees',
         'organizer', 'importance'

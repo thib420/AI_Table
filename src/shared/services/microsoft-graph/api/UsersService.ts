@@ -4,6 +4,11 @@ import { GraphUser, UsersSearchOptions } from '../types';
 export class UsersService {
   private readonly baseEndpoint = '/users';
 
+  // Helper function to escape single quotes for OData
+  private escapeODataString(str: string): string {
+    return str.replace(/'/g, "''");
+  }
+
   // Get all users in the organization
   async getUsers(options?: UsersSearchOptions): Promise<GraphUser[]> {
     return await graphClientService.makePaginatedRequest<GraphUser>(this.baseEndpoint, {
@@ -43,7 +48,8 @@ export class UsersService {
 
   // Search users
   async searchUsers(searchTerm: string, options?: Omit<UsersSearchOptions, 'search'>): Promise<GraphUser[]> {
-    const filter = `startswith(displayName,'${searchTerm}') or startswith(givenName,'${searchTerm}') or startswith(surname,'${searchTerm}') or startswith(mail,'${searchTerm}')`;
+    const escapedTerm = this.escapeODataString(searchTerm);
+    const filter = `startswith(displayName,'${escapedTerm}') or startswith(givenName,'${escapedTerm}') or startswith(surname,'${escapedTerm}') or startswith(mail,'${escapedTerm}')`;
     
     return await this.getUsers({
       ...options,
@@ -54,7 +60,7 @@ export class UsersService {
   // Get users by department
   async getUsersByDepartment(department: string): Promise<GraphUser[]> {
     return await this.getUsers({
-      filter: `department eq '${department}'`,
+      filter: `department eq '${this.escapeODataString(department)}'`,
       orderBy: 'displayName'
     });
   }
@@ -62,7 +68,7 @@ export class UsersService {
   // Get users by job title
   async getUsersByJobTitle(jobTitle: string): Promise<GraphUser[]> {
     return await this.getUsers({
-      filter: `jobTitle eq '${jobTitle}'`,
+      filter: `jobTitle eq '${this.escapeODataString(jobTitle)}'`,
       orderBy: 'displayName'
     });
   }
@@ -70,7 +76,7 @@ export class UsersService {
   // Get users by company
   async getUsersByCompany(companyName: string): Promise<GraphUser[]> {
     return await this.getUsers({
-      filter: `companyName eq '${companyName}'`,
+      filter: `companyName eq '${this.escapeODataString(companyName)}'`,
       orderBy: 'displayName'
     });
   }
@@ -105,7 +111,7 @@ export class UsersService {
   // Get users by office location
   async getUsersByOfficeLocation(location: string): Promise<GraphUser[]> {
     return await this.getUsers({
-      filter: `officeLocation eq '${location}'`,
+      filter: `officeLocation eq '${this.escapeODataString(location)}'`,
       orderBy: 'displayName'
     });
   }
@@ -121,7 +127,7 @@ export class UsersService {
   // Get users by email domain
   async getUsersByEmailDomain(domain: string): Promise<GraphUser[]> {
     return await this.getUsers({
-      filter: `endswith(mail,'@${domain}')`,
+      filter: `endswith(mail,'@${this.escapeODataString(domain)}')`,
       orderBy: 'displayName'
     });
   }

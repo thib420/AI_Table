@@ -11,41 +11,231 @@ export class GraphCRMService {
   async getAllContacts(): Promise<Contact[]> {
     try {
       await graphServiceManager.initialize();
-      const [graphContacts, people, users] = await Promise.allSettled([
-        withRetry(() => graphServiceManager.contacts.getContacts()),
-        withRetry(() => graphServiceManager.people?.getRelevantPeople({ top: 100 }) || Promise.resolve([])),
-        withRetry(() => graphServiceManager.users?.getUsers({ top: 50 }) || Promise.resolve([]))
-      ]);
-
+      
+      console.log('🔍 Fetching contacts sequentially to avoid rate limits...');
+      
+      // Make requests sequentially instead of concurrently to avoid rate limits
       let allCRMContacts: CRMContact[] = [];
-
-      // Transform Graph contacts
-      if (graphContacts.status === 'fulfilled') {
-        const crmContacts = graphDataTransformers.contactsToCRM(graphContacts.value);
-        allCRMContacts.push(...crmContacts);
+      
+      // First, get Graph contacts (most important)
+      try {
+        console.log('📇 Fetching Graph contacts...');
+        const graphContacts = await withRetry(() => 
+          graphServiceManager.contacts.getContacts({ top: 50 }) // Reduced from default 100
+        );
+        if (graphContacts?.length) {
+          const crmContacts = graphDataTransformers.contactsToCRM(graphContacts);
+          allCRMContacts.push(...crmContacts);
+          console.log(`✅ Graph contacts: ${crmContacts.length} contacts`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to fetch Graph contacts:', error);
       }
 
-      // Transform People API results
-      if (people.status === 'fulfilled') {
-        const crmPeople = graphDataTransformers.peopleToCRM(people.value);
-        allCRMContacts.push(...crmPeople);
+      // Add delay before next API call
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Then get People API data (if contacts are still needed)
+      if (allCRMContacts.length < 30) { // Only fetch if we don't have enough contacts
+        try {
+          console.log('👥 Fetching People API data...');
+          const people = await withRetry(() => 
+            graphServiceManager.people?.getRelevantPeople({ top: 25 }) || Promise.resolve([]) // Reduced from 100
+          );
+          if (people?.length) {
+            const crmPeople = graphDataTransformers.peopleToCRM(people);
+            allCRMContacts.push(...crmPeople);
+            console.log(`✅ People API: ${crmPeople.length} contacts`);
+          }
+        } catch (error) {
+          console.error('❌ Failed to fetch People API data:', error);
+        }
+
+        // Add delay before next API call
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
-      // Transform Users API results (organization directory)
-      if (users.status === 'fulfilled') {
-        const crmUsers = graphDataTransformers.usersToCRM(users.value);
-        allCRMContacts.push(...crmUsers);
+      // Finally get Users data (organization directory) if still needed
+      if (allCRMContacts.length < 50) { // Only fetch if we still need more contacts
+        try {
+          console.log('🏢 Fetching organization users...');
+          const users = await withRetry(() => 
+            graphServiceManager.users?.getUsers({ top: 20 }) || Promise.resolve([]) // Reduced from 50
+          );
+          if (users?.length) {
+            const crmUsers = graphDataTransformers.usersToCRM(users);
+            allCRMContacts.push(...crmUsers);
+            console.log(`✅ Organization users: ${crmUsers.length} contacts`);
+          }
+        } catch (error) {
+          console.error('❌ Failed to fetch organization users:', error);
+        }
       }
 
       // Merge duplicates and convert to CRM format
       const uniqueContacts = graphDataTransformers.mergeDuplicateContacts(allCRMContacts);
+      console.log(`🔄 Merged duplicates: ${uniqueContacts.length} unique contacts`);
       
-      return uniqueContacts.map(this.crmContactToContact);
+      // Enrich with real lastContact dates from emails and calendar (simplified)
+      const enrichedContacts = await this.enrichContactsWithLastInteraction(uniqueContacts);
+      
+      const finalContacts = enrichedContacts.map(this.crmContactToContact);
+      console.log(`✅ Final contacts: ${finalContacts.length} contacts ready`);
+      
+      return finalContacts;
     } catch (error) {
       console.error('Error fetching contacts from Graph:', error);
       // Return empty array - no fallback to mock data, only real data from Microsoft Graph
       return [];
     }
+  }
+
+  // Enrich contacts with real last interaction dates from emails and calendar
+  private async enrichContactsWithLastInteraction(contacts: CRMContact[]): Promise<CRMContact[]> {
+    try {
+      console.log('🔍 Enriching contacts with last interaction data...');
+      
+      // Reduce the amount of data fetched to avoid rate limits
+      let emails: any[] = [];
+      let meetings: any[] = [];
+      
+      // Get recent emails (reduced amount)
+      try {
+        console.log('📧 Fetching recent emails...');
+        emails = await withRetry(() => graphServiceManager.mail.getRecentEmails(30)); // Reduced from 100 to 30 days
+        console.log(`✅ Found ${emails.length} recent emails`);
+      } catch (error) {
+        console.error('❌ Failed to fetch emails:', error);
+      }
+      
+      // Add delay before next API call
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
+      // Get recent calendar events (reduced amount and timeframe)
+      try {
+        console.log('📅 Fetching recent calendar events...');
+        const endTime = new Date().toISOString();
+        const startTime = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(); // Reduced from 180 to 90 days
+        meetings = await withRetry(() => 
+          graphServiceManager.calendar.getEvents({
+            startTime,
+            endTime,
+            top: 50, // Reduced from 200 to 50
+            orderBy: 'start/dateTime desc'
+          })
+        );
+        console.log(`✅ Found ${meetings.length} recent meetings`);
+      } catch (error) {
+        console.error('❌ Failed to fetch calendar events:', error);
+      }
+
+      // Create a map to track the most recent interaction for each contact
+      const lastInteractionMap = new Map<string, string>();
+
+      // Process emails to find last contact dates (only if we have emails)
+      if (emails.length > 0) {
+        console.log('🔄 Processing email interactions...');
+        emails.forEach(email => {
+          const emailDate = email.receivedDateTime || email.sentDateTime;
+          if (!emailDate) return;
+
+          // Check sender
+          const senderEmail = email.sender?.emailAddress?.address?.toLowerCase();
+          if (senderEmail) {
+            const contact = contacts.find(c => c.email.toLowerCase() === senderEmail);
+            if (contact) {
+              const currentLast = lastInteractionMap.get(contact.id);
+              if (!currentLast || new Date(emailDate) > new Date(currentLast)) {
+                lastInteractionMap.set(contact.id, emailDate);
+              }
+            }
+          }
+
+          // Check recipients (for sent emails) - simplified processing
+          [...(email.toRecipients || []), ...(email.ccRecipients || [])].forEach(recipient => {
+            const recipientEmail = recipient.emailAddress?.address?.toLowerCase();
+            if (recipientEmail) {
+              const contact = contacts.find(c => c.email.toLowerCase() === recipientEmail);
+              if (contact) {
+                const currentLast = lastInteractionMap.get(contact.id);
+                if (!currentLast || new Date(emailDate) > new Date(currentLast)) {
+                  lastInteractionMap.set(contact.id, emailDate);
+                }
+              }
+            }
+          });
+        });
+      }
+
+      // Process calendar events to find last meeting dates (only if we have meetings)
+      if (meetings.length > 0) {
+        console.log('🔄 Processing calendar interactions...');
+        meetings.forEach(meeting => {
+          const meetingDate = meeting.start?.dateTime;
+          if (!meetingDate) return;
+
+          // Process attendees and organizer
+          const emailsToCheck = [
+            ...(meeting.attendees || []).map(a => a.emailAddress?.address),
+            meeting.organizer?.emailAddress?.address
+          ].filter(Boolean);
+
+          emailsToCheck.forEach(email => {
+            if (email) {
+              const contact = contacts.find(c => c.email.toLowerCase() === email.toLowerCase());
+              if (contact) {
+                const currentLast = lastInteractionMap.get(contact.id);
+                if (!currentLast || new Date(meetingDate) > new Date(currentLast)) {
+                  lastInteractionMap.set(contact.id, meetingDate);
+                }
+              }
+            }
+          });
+        });
+      }
+
+      // Update contacts with real last interaction dates
+      const enrichedContacts = contacts.map(contact => {
+        const lastInteraction = lastInteractionMap.get(contact.id);
+        if (lastInteraction) {
+          return {
+            ...contact,
+            lastContact: lastInteraction,
+            // Update status based on recent activity
+            status: this.calculateContactStatus(contact.status, lastInteraction)
+          };
+        }
+        return contact;
+      });
+
+      console.log(`✅ Enriched ${lastInteractionMap.size} contacts with real interaction dates`);
+      return enrichedContacts;
+
+    } catch (error) {
+      console.error('❌ Error enriching contacts with interaction data:', error);
+      return contacts; // Return original contacts if enrichment fails
+    }
+  }
+
+  // Calculate contact status based on last interaction
+  private calculateContactStatus(currentStatus: string, lastInteraction: string): 'lead' | 'prospect' | 'customer' | 'inactive' {
+    const daysSinceLastInteraction = Math.floor(
+      (Date.now() - new Date(lastInteraction).getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // If recent interaction (within 30 days), upgrade status if needed
+    if (daysSinceLastInteraction <= 30) {
+      if (currentStatus === 'lead') return 'prospect';
+      if (currentStatus === 'prospect') return 'customer';
+      return currentStatus as any;
+    }
+
+    // If very old interaction (over 180 days), downgrade to inactive
+    if (daysSinceLastInteraction > 180) {
+      return 'inactive';
+    }
+
+    return currentStatus as any;
   }
 
   // Get a specific contact by ID
@@ -192,48 +382,79 @@ export class GraphCRMService {
   async getDeals(): Promise<Deal[]> {
     try {
       await graphServiceManager.initialize();
-      // Get recent emails and meetings to derive deal information
-      const [recentEmails, upcomingMeetings] = await Promise.allSettled([
-        withRetry(() => graphServiceManager.mail.getRecentEmails(30)),
-        withRetry(() => graphServiceManager.calendar?.getUpcomingEvents(30) || Promise.resolve([]))
-      ]);
+      
+      console.log('🔍 Fetching deal data sequentially to avoid rate limits...');
+      
+      let recentEmails: any[] = [];
+      let upcomingMeetings: any[] = [];
+      
+      // Get recent emails (reduced amount)
+      try {
+        console.log('📧 Fetching recent emails for deals...');
+        recentEmails = await withRetry(() => graphServiceManager.mail.getRecentEmails(20)); // Reduced from 30 to 20
+        console.log(`✅ Found ${recentEmails.length} recent emails`);
+      } catch (error) {
+        console.error('❌ Failed to fetch emails for deals:', error);
+      }
+      
+      // Add delay before next API call
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
+      // Get upcoming meetings (reduced amount)
+      try {
+        console.log('📅 Fetching upcoming meetings for deals...');
+        upcomingMeetings = await withRetry(() => 
+          graphServiceManager.calendar?.getUpcomingEvents(20) || Promise.resolve([]) // Reduced from 30 to 20
+        );
+        console.log(`✅ Found ${upcomingMeetings.length} upcoming meetings`);
+      } catch (error) {
+        console.error('❌ Failed to fetch meetings for deals:', error);
+      }
 
       const deals: Deal[] = [];
 
       // Create deals from high-importance emails with external contacts
-      if (recentEmails.status === 'fulfilled') {
+      if (recentEmails.length > 0) {
+        console.log('🔄 Processing emails for deal opportunities...');
         const userDomain = await this.getCurrentUserDomain();
-        const importantEmails = recentEmails.value.filter(email => 
+        const importantEmails = recentEmails.filter(email => 
           email.importance === 'high' && 
           email.sender?.emailAddress?.address &&
           !email.sender.emailAddress.address.includes(userDomain)
         );
 
-        for (const email of importantEmails.slice(0, 10)) { // Limit to 10 deals
+        for (const email of importantEmails.slice(0, 5)) { // Reduced from 10 to 5 deals
           const senderEmail = email.sender?.emailAddress?.address;
           if (senderEmail) {
-            const contact = await this.findContactByEmail(senderEmail);
-            if (contact) {
-              deals.push({
-                id: `email-deal-${email.id}`,
-                title: `${contact.company} - ${email.subject}`,
-                value: this.estimateDealValue(email.subject || ''),
-                stage: 'qualification',
-                probability: 50,
-                contact: contact.name,
-                company: contact.company,
-                closeDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                createdDate: email.receivedDateTime?.split('T')[0] || new Date().toISOString().split('T')[0]
-              });
+            try {
+              const contact = await this.findContactByEmail(senderEmail);
+              if (contact) {
+                deals.push({
+                  id: `email-deal-${email.id}`,
+                  title: `${contact.company} - ${email.subject}`,
+                  value: this.estimateDealValue(email.subject || ''),
+                  stage: 'qualification',
+                  probability: 50,
+                  contact: contact.name,
+                  company: contact.company,
+                  closeDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                  createdDate: email.receivedDateTime?.split('T')[0] || new Date().toISOString().split('T')[0]
+                });
+              }
+              // Add small delay between contact lookups
+              await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (error) {
+              console.error('❌ Failed to find contact for email deal:', error);
             }
           }
         }
       }
 
       // Create deals from upcoming meetings with external attendees
-      if (upcomingMeetings.status === 'fulfilled') {
+      if (upcomingMeetings.length > 0) {
+        console.log('🔄 Processing meetings for deal opportunities...');
         const userDomain = await this.getCurrentUserDomain();
-        for (const meeting of upcomingMeetings.value.slice(0, 5)) { // Limit to 5 deals
+        for (const meeting of upcomingMeetings.slice(0, 3)) { // Reduced from 5 to 3 deals
           const externalAttendees = meeting.attendees?.filter(attendee => 
             attendee.emailAddress?.address && 
             !attendee.emailAddress.address.includes(userDomain)
@@ -242,25 +463,32 @@ export class GraphCRMService {
           if (externalAttendees && externalAttendees.length > 0) {
             const attendeeEmail = externalAttendees[0].emailAddress?.address;
             if (attendeeEmail) {
-              const contact = await this.findContactByEmail(attendeeEmail);
-              if (contact) {
-                deals.push({
-                  id: `meeting-deal-${meeting.id}`,
-                  title: `${contact.company} - ${meeting.subject}`,
-                  value: this.estimateDealValue(meeting.subject || ''),
-                  stage: 'proposal',
-                  probability: 75,
-                  contact: contact.name,
-                  company: contact.company,
-                  closeDate: meeting.start?.dateTime?.split('T')[0] || new Date().toISOString().split('T')[0],
-                  createdDate: meeting.createdDateTime?.split('T')[0] || new Date().toISOString().split('T')[0]
-                });
+              try {
+                const contact = await this.findContactByEmail(attendeeEmail);
+                if (contact) {
+                  deals.push({
+                    id: `meeting-deal-${meeting.id}`,
+                    title: `${contact.company} - ${meeting.subject}`,
+                    value: this.estimateDealValue(meeting.subject || ''),
+                    stage: 'proposal',
+                    probability: 75,
+                    contact: contact.name,
+                    company: contact.company,
+                    closeDate: meeting.start?.dateTime?.split('T')[0] || new Date().toISOString().split('T')[0],
+                    createdDate: meeting.createdDateTime?.split('T')[0] || new Date().toISOString().split('T')[0]
+                  });
+                }
+                // Add small delay between contact lookups
+                await new Promise(resolve => setTimeout(resolve, 100));
+              } catch (error) {
+                console.error('❌ Failed to find contact for meeting deal:', error);
               }
             }
           }
         }
       }
 
+      console.log(`✅ Generated ${deals.length} deal opportunities`);
       return deals;
     } catch (error) {
       console.error('Error generating deals:', error);

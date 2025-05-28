@@ -2,6 +2,9 @@ import { graphAuthService } from './core/GraphAuthService';
 import { graphClientService } from './core/GraphClientService';
 import { contactsService } from './api/ContactsService';
 import { mailService } from './api/MailService';
+import { calendarService } from './api/CalendarService';
+import { peopleService } from './api/PeopleService';
+import { usersService } from './api/UsersService';
 
 /**
  * Centralized Microsoft Graph Service Manager
@@ -17,6 +20,9 @@ export class GraphServiceManager {
   public readonly client = graphClientService;
   public readonly contacts = contactsService;
   public readonly mail = mailService;
+  public readonly calendar = calendarService;
+  public readonly people = peopleService;
+  public readonly users = usersService;
 
   private constructor() {
     // Services are already initialized as singletons

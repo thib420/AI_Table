@@ -14,6 +14,11 @@ export class MailService {
     return MailService.instance;
   }
 
+  // Helper function to escape single quotes for OData
+  private escapeODataString(str: string): string {
+    return str.replace(/'/g, "''");
+  }
+
   // Get emails from a specific folder
   async getEmails(folderId: string = 'inbox', top: number = 50): Promise<Message[]> {
     console.log(`📧 MailService.getEmails called with folderId: ${folderId}, top: ${top}`);
@@ -85,7 +90,7 @@ export class MailService {
 
       // Simplified search - just by subject to avoid "too complex" errors
       const result = await graphClientService.makePaginatedRequest<Message>(endpoint, {
-        filter: `contains(subject,'${searchTerm}')`,
+        filter: `contains(subject,'${this.escapeODataString(searchTerm)}')`,
         select: [
           'id', 'subject', 'bodyPreview', 'sender', 'receivedDateTime',
           'isRead', 'flag', 'hasAttachments', 'webLink', 'importance'
@@ -109,7 +114,7 @@ export class MailService {
       console.log(`📧 MailService.getEmailsFromSender called with: ${senderEmail}`);
       
       const result = await graphClientService.makePaginatedRequest<Message>(this.baseEndpoint, {
-        filter: `sender/emailAddress/address eq '${senderEmail}'`,
+        filter: `sender/emailAddress/address eq '${this.escapeODataString(senderEmail)}'`,
         select: [
           'id', 'subject', 'bodyPreview', 'sender', 'receivedDateTime',
           'isRead', 'flag', 'hasAttachments', 'webLink', 'importance'
@@ -329,8 +334,8 @@ export class MailService {
         'isRead', 'flag', 'hasAttachments', 'webLink'
       ],
       orderBy: 'receivedDateTime desc',
-      top: 100,
-      maxPages: 3
+      top: 50,
+      maxPages: 2
     });
   }
 }
