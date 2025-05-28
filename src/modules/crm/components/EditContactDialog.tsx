@@ -30,7 +30,8 @@ import {
   Loader2, 
   AlertCircle,
   Plus,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 import { Contact } from '../types';
 import { graphCRMService } from '../services/GraphCRMService';
@@ -71,6 +72,7 @@ export function EditContactDialog({ contact, isOpen, onClose, onSave }: EditCont
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isGraphSyncEnabled, setIsGraphSyncEnabled] = useState(true);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   // Initialize form data when contact changes
   useEffect(() => {
@@ -83,7 +85,7 @@ export function EditContactDialog({ contact, isOpen, onClose, onSave }: EditCont
         company: contact.company,
         position: contact.position,
         location: contact.location,
-        status: contact.status,
+        status: '', // Start with empty status
         dealValue: contact.dealValue,
         tags: contact.tags,
         source: contact.source
@@ -99,8 +101,24 @@ export function EditContactDialog({ contact, isOpen, onClose, onSave }: EditCont
       setCustomTags([]);
       setNewTag('');
       setError(null);
+      setShowStatusDropdown(false);
     }
   }, [isOpen]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showStatusDropdown) {
+        const target = event.target as Element;
+        if (!target.closest('.status-dropdown-container')) {
+          setShowStatusDropdown(false);
+        }
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showStatusDropdown]);
 
   const handleInputChange = (field: keyof Contact, value: string | number) => {
     setFormData(prev => ({
@@ -128,6 +146,20 @@ export function EditContactDialog({ contact, isOpen, onClose, onSave }: EditCont
       ...prev,
       tags: updatedTags
     }));
+  };
+
+  const handleStatusChange = (value: string) => {
+    setFormData(prev => ({ ...prev, status: value }));
+    setShowStatusDropdown(false);
+  };
+
+  const handleCustomStatusInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const value = (e.target as HTMLInputElement).value;
+      if (value.trim()) {
+        handleStatusChange(value.trim());
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -311,31 +343,48 @@ export function EditContactDialog({ contact, isOpen, onClose, onSave }: EditCont
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="status">
-                  Contact Type *
+                  Contact Type
                 </Label>
-                <Select
-                  value={formData.status || ''}
-                  onValueChange={(value: string) => handleInputChange('status', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select contact type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CONTACT_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{type.label}</span>
-                          <span className="text-xs text-muted-foreground">{type.description}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedContactType && (
-                  <p className="text-xs text-muted-foreground">
-                    {selectedContactType.description}
-                  </p>
-                )}
+                <div className="relative status-dropdown-container">
+                  <Input
+                    id="status"
+                    value={formData.status || ''}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    onKeyDown={handleCustomStatusInput}
+                    placeholder="Enter contact type or select from dropdown"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                  
+                  {showStatusDropdown && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      {CONTACT_TYPES.map((type) => (
+                        <button
+                          key={type.value}
+                          type="button"
+                          className="w-full text-left px-3 py-2 hover:bg-muted transition-colors"
+                          onClick={() => handleStatusChange(type.value)}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium">{type.label}</span>
+                            <span className="text-xs text-muted-foreground">{type.description}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Type your own status or select from predefined options above
+                </p>
               </div>
 
               <div className="space-y-2">

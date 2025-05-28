@@ -15,14 +15,16 @@ import {
   List,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Check,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { graphCRMService } from '../services/GraphCRMService';
 import { Contact } from '../types';
@@ -40,6 +42,7 @@ type SortDirection = 'asc' | 'desc';
 export function ContactsView({ onContactView }: ContactsViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('card');
@@ -66,6 +69,20 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
     loadContacts();
   }, []);
 
+  // Get unique categories from all contacts
+  const allCategories = React.useMemo(() => {
+    const categorySet = new Set<string>();
+    contacts.forEach(contact => {
+      if (contact.tags && Array.isArray(contact.tags)) {
+        contact.tags.forEach(tag => categorySet.add(tag));
+      }
+    });
+    const categories = Array.from(categorySet).sort();
+    console.log('Available categories:', categories);
+    console.log('Total contacts:', contacts.length);
+    return categories;
+  }, [contacts]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -88,6 +105,22 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
     );
   };
 
+  const handleCategoryToggle = (category: string) => {
+    console.log('Toggling category:', category);
+    setSelectedCategories(prev => {
+      const newCategories = prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category];
+      console.log('New selected categories:', newCategories);
+      return newCategories;
+    });
+  };
+
+  const clearCategoryFilters = () => {
+    console.log('Clearing category filters');
+    setSelectedCategories([]);
+  };
+
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) return <ArrowUpDown className="h-4 w-4" />;
     return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
@@ -96,6 +129,10 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
   const filteredAndSortedContacts = contacts
     .filter((contact: Contact) => 
       selectedStatus === 'all' || contact.status === selectedStatus
+    )
+    .filter((contact: Contact) =>
+      selectedCategories.length === 0 || 
+      selectedCategories.some(category => contact.tags.includes(category))
     )
     .filter((contact: Contact) =>
       searchQuery === '' || 
@@ -163,26 +200,185 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
                 className="pl-10 w-64"
               />
             </div>
+            
+            {/* Status Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Filter className="h-4 w-4 mr-2" />
-                  Filter
+                  Status
+                  {selectedStatus !== 'all' && (
+                    <Badge variant="secondary" className="ml-2 h-5 text-xs">
+                      1
+                    </Badge>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setSelectedStatus('all')}>All Contacts</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus('lead')}>Leads</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus('prospect')}>Prospects</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus('customer')}>Customers</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus('partner')}>Partners</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus('vendor')}>Vendors</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus('employee')}>Employees</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus('contractor')}>Contractors</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus('intern')}>Interns</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus('inactive')}>Inactive</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus('all')}>
+                  <div className="flex items-center space-x-2">
+                    <span>All Contacts</span>
+                    {selectedStatus === 'all' && <Check className="h-4 w-4" />}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setSelectedStatus('lead')}>
+                  <div className="flex items-center space-x-2">
+                    <span>Leads</span>
+                    {selectedStatus === 'lead' && <Check className="h-4 w-4" />}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus('prospect')}>
+                  <div className="flex items-center space-x-2">
+                    <span>Prospects</span>
+                    {selectedStatus === 'prospect' && <Check className="h-4 w-4" />}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus('customer')}>
+                  <div className="flex items-center space-x-2">
+                    <span>Customers</span>
+                    {selectedStatus === 'customer' && <Check className="h-4 w-4" />}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus('partner')}>
+                  <div className="flex items-center space-x-2">
+                    <span>Partners</span>
+                    {selectedStatus === 'partner' && <Check className="h-4 w-4" />}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus('vendor')}>
+                  <div className="flex items-center space-x-2">
+                    <span>Vendors</span>
+                    {selectedStatus === 'vendor' && <Check className="h-4 w-4" />}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus('employee')}>
+                  <div className="flex items-center space-x-2">
+                    <span>Employees</span>
+                    {selectedStatus === 'employee' && <Check className="h-4 w-4" />}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus('contractor')}>
+                  <div className="flex items-center space-x-2">
+                    <span>Contractors</span>
+                    {selectedStatus === 'contractor' && <Check className="h-4 w-4" />}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus('intern')}>
+                  <div className="flex items-center space-x-2">
+                    <span>Interns</span>
+                    {selectedStatus === 'intern' && <Check className="h-4 w-4" />}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus('inactive')}>
+                  <div className="flex items-center space-x-2">
+                    <span>Inactive</span>
+                    {selectedStatus === 'inactive' && <Check className="h-4 w-4" />}
+                  </div>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Categories Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Categories
+                  {selectedCategories.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 h-5 text-xs">
+                      {selectedCategories.length}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64" align="start">
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium">Select Categories</span>
+                    {selectedCategories.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearCategoryFilters();
+                        }}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    {allCategories.length === 0 ? (
+                      <div className="text-sm text-muted-foreground py-4 text-center">
+                        No categories available
+                        <br />
+                        <span className="text-xs">Categories will appear as you add tags to contacts</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {allCategories.map(category => (
+                          <label
+                            key={category}
+                            className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-muted rounded-sm transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedCategories.includes(category)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleCategoryToggle(category);
+                              }}
+                              className="rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0 focus:ring-2"
+                            />
+                            <span className="text-sm flex-1">{category}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {contacts.filter(c => c.tags?.includes(category)).length}
+                            </Badge>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Active Filters Display */}
+            {(selectedStatus !== 'all' || selectedCategories.length > 0) && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">Filters:</span>
+                {selectedStatus !== 'all' && (
+                  <Badge variant="secondary" className="flex items-center space-x-1">
+                    <span>{selectedStatus}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedStatus('all')}
+                      className="h-4 w-4 p-0 hover:bg-transparent"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                )}
+                {selectedCategories.map(category => (
+                  <Badge key={category} variant="secondary" className="flex items-center space-x-1">
+                    <span>{category}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCategoryToggle(category)}
+                      className="h-4 w-4 p-0 hover:bg-transparent"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
+            )}
             
             {/* View Mode Toggle */}
             <div className="flex items-center border rounded-md">
@@ -209,6 +405,13 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
               Add Contact
             </Button>
           </div>
+        </div>
+
+        {/* Results count */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredAndSortedContacts.length} of {contacts.length} contacts
+          </p>
         </div>
 
         {/* Content based on view mode */}
@@ -377,7 +580,7 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
                         {getSortIcon('dealValue')}
                       </div>
                     </TableHead>
-                    <TableHead>Tags</TableHead>
+                    <TableHead>Categories</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>

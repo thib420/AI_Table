@@ -4,6 +4,7 @@ import { ColumnDef, EnrichedExaResultItem } from '@/modules/search/services/ai-c
 import { SavedSearchItem } from '@/modules/search/components/SearchHistoryManager';
 import { ColumnFilter } from '@/components/common/ColumnFilter';
 import { ColumnSort } from '@/components/common/ColumnSort';
+import { Contact } from '@/modules/crm/types';
 
 export interface SearchState {
   query: string;
@@ -79,4 +80,5 @@ export interface SearchResultsProps {
   onRowSelection: (selectedRows: Set<number>) => void;
   isAddingAIColumn: boolean;
   selectedRowsCount: number;
+  onContactsCreated?: (contacts: Contact[]) => void;
 } 

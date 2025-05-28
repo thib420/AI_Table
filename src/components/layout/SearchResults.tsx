@@ -20,7 +20,8 @@ export function SearchResults({
   onSave,
   onRowSelection,
   isAddingAIColumn,
-  selectedRowsCount
+  selectedRowsCount,
+  onContactsCreated
 }: SearchResultsProps) {
   // Empty State
   if (!searchState.isLoading && searchState.results.length === 0 && !searchState.error) {
@@ -287,6 +288,7 @@ export function SearchResults({
             columnSort={searchState.columnSort}
             onColumnSortChange={onColumnSortChange}
             isLoading={searchState.isLoading}
+            onContactsCreated={onContactsCreated}
           />
         </CardContent>
         {/* Load More Results Button */}

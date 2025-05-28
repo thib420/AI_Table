@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ExternalLink, Plus, Sparkles, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ExternalLink, Plus, Sparkles, Filter, ArrowUpDown, ArrowUp, ArrowDown, UserPlus } from 'lucide-react';
 import { EnrichedExaResultItem, ColumnDef } from '../../services/ai-column-generator';
 import { ColumnFilter } from '@/components/common/ColumnFilter';
 import { ColumnSortIndicator, ColumnSort, sortData } from '@/components/common/ColumnSort';
+import { BulkContactCreationDialog } from '../BulkContactCreationDialog';
+import { Contact } from '@/modules/crm/types';
 
 interface ResultsTableProps {
   results: EnrichedExaResultItem[];
@@ -27,6 +29,7 @@ interface ResultsTableProps {
   columnSort?: ColumnSort | null;
   onColumnSortChange?: (sort: ColumnSort | null) => void;
   isLoading?: boolean;
+  onContactsCreated?: (contacts: Contact[]) => void;
 }
 
 export const ResultsTable: React.FC<ResultsTableProps> = ({
@@ -41,9 +44,11 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
   onColumnFiltersChange,
   columnSort,
   onColumnSortChange,
-  isLoading = false
+  isLoading = false,
+  onContactsCreated
 }) => {
   const [showFilters, setShowFilters] = useState(false);
+  const [showBulkCreateDialog, setShowBulkCreateDialog] = useState(false);
 
   // Apply filters and sorting
   const processedResults = useMemo(() => {
@@ -128,6 +133,24 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
       <ArrowDown className="h-4 w-4" />;
   };
 
+  const handleBulkCreateContacts = () => {
+    setShowBulkCreateDialog(true);
+  };
+
+  const handleContactsCreated = (contacts: Contact[]) => {
+    console.log(`✅ ${contacts.length} contacts created successfully!`);
+    if (onContactsCreated) {
+      onContactsCreated(contacts);
+    }
+    // Clear selection after successful creation
+    if (onRowSelection) {
+      onRowSelection(new Set());
+    }
+  };
+
+  // Get selected results for bulk creation
+  const selectedResults = Array.from(selectedRows).map(index => results[index]);
+
   if (isLoading) {
     return (
       <Card>
@@ -183,12 +206,24 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
             <Filter className="h-4 w-4 mr-2" />
             Filters
           </Button>
+
+          {selectedRows.size > 0 && (
+            <Button
+              onClick={handleBulkCreateContacts}
+              size="sm"
+              variant="default"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Create {selectedRows.size} Contact{selectedRows.size !== 1 ? 's' : ''}
+            </Button>
+          )}
           
           {onAddAIColumn && (
             <Button
               onClick={onAddAIColumn}
               disabled={isAddingAIColumn}
               size="sm"
+              variant="outline"
             >
               {isAddingAIColumn ? (
                 <>
@@ -322,6 +357,14 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
           </table>
         </div>
       </Card>
+
+      {/* Bulk Contact Creation Dialog */}
+      <BulkContactCreationDialog
+        selectedResults={selectedResults}
+        isOpen={showBulkCreateDialog}
+        onClose={() => setShowBulkCreateDialog(false)}
+        onSuccess={handleContactsCreated}
+      />
     </div>
   );
 }; 

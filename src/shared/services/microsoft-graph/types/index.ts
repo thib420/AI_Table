@@ -105,7 +105,7 @@ export interface CRMContact {
   company: string;
   position: string;
   location: string;
-  status: 'lead' | 'prospect' | 'customer' | 'inactive';
+  status: string; // Allow any string value for custom contact types
   lastContact: string;
   dealValue: number;
   avatar?: string;
