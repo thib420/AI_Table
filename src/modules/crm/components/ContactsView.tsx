@@ -17,7 +17,8 @@ import {
   ArrowUp,
   ArrowDown,
   Check,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,15 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { graphCRMService } from '../services/GraphCRMService';
 import { Contact } from '../types';
 import { getStatusColor, generateProfilePicture } from '../utils/helpers';
@@ -52,6 +62,12 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   React.useEffect(() => {
     const loadContacts = async () => {
@@ -103,6 +119,74 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
         contact.id === updatedContact.id ? updatedContact : contact
       )
     );
+  };
+
+  const handleDeleteContact = (contact: Contact) => {
+    setContactToDelete(contact);
+    setDeleteDialogOpen(true);
+    setDeleteError(null);
+  };
+
+  const confirmDeleteContact = async () => {
+    if (!contactToDelete) return;
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      console.log(`🗑️ Deleting contact: ${contactToDelete.name} (ID: ${contactToDelete.id})`);
+      
+      // Delete from Microsoft Graph
+      await graphCRMService.deleteContact(contactToDelete.id);
+      
+      console.log(`✅ Contact ${contactToDelete.name} deleted successfully from Graph`);
+      
+      // Update local state
+      setContacts(prevContacts => 
+        prevContacts.filter(contact => contact.id !== contactToDelete.id)
+      );
+      
+      // Close dialog
+      setDeleteDialogOpen(false);
+      setContactToDelete(null);
+      
+    } catch (error) {
+      console.error('❌ Error deleting contact:', error);
+      setDeleteError(error instanceof Error ? error.message : 'Failed to delete contact');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDeleteContact = () => {
+    setDeleteDialogOpen(false);
+    setContactToDelete(null);
+    setDeleteError(null);
+  };
+
+  // Check if a contact can be deleted (only contacts from Graph Contacts API can be deleted)
+  const canDeleteContact = (contact: Contact | null): boolean => {
+    if (!contact) return false;
+    // Check graphType - only "contact" type can be deleted
+    return contact.graphType === 'contact';
+  };
+
+  const getDeleteTooltip = (contact: Contact | null): string => {
+    if (!contact) return 'Contact not available';
+    
+    if (canDeleteContact(contact)) {
+      return 'Delete this contact from Outlook';
+    }
+    
+    if (contact.graphType === 'person') {
+      return 'Cannot delete - This contact is from your organization directory';
+    }
+    
+    if (contact.graphType === 'user') {
+      return 'Cannot delete - This is an organizational user account';
+    }
+    
+    return 'Cannot delete - This contact is from external sources';
   };
 
   const handleCategoryToggle = (category: string) => {
@@ -470,9 +554,25 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
                             <Edit className="h-4 w-4 mr-2" />
                             Edit Contact
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem 
+                            className={`${canDeleteContact(contact) ? 'text-red-600' : 'text-muted-foreground'}`}
+                            disabled={!canDeleteContact(contact)}
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              if (canDeleteContact(contact)) {
+                                handleDeleteContact(contact);
+                              }
+                            }}
+                            title={getDeleteTooltip(contact)}
+                          >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
+                            {!canDeleteContact(contact) && (
+                              <span className="ml-auto text-xs text-muted-foreground">
+                                ({contact.graphType === 'person' ? 'Org' : 
+                                  contact.graphType === 'user' ? 'User' : 'External'})
+                              </span>
+                            )}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -691,9 +791,25 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit Contact
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem 
+                                className={`${canDeleteContact(contact) ? 'text-red-600' : 'text-muted-foreground'}`}
+                                disabled={!canDeleteContact(contact)}
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  if (canDeleteContact(contact)) {
+                                    handleDeleteContact(contact);
+                                  }
+                                }}
+                                title={getDeleteTooltip(contact)}
+                              >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
+                                {!canDeleteContact(contact) && (
+                                  <span className="ml-auto text-xs text-muted-foreground">
+                                    ({contact.graphType === 'person' ? 'Org' : 
+                                      contact.graphType === 'user' ? 'User' : 'External'})
+                                  </span>
+                                )}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -718,6 +834,59 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
         }}
         onSave={handleContactUpdated}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <span>Delete Contact</span>
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {contactToDelete?.name}? This action cannot be undone.
+              <br />
+              <span className="text-sm text-muted-foreground mt-2 block">
+                {contactToDelete ? getDeleteTooltip(contactToDelete) : 'This will permanently remove the contact from Microsoft Outlook and your CRM.'}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteError && (
+            <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{deleteError}</AlertDescription>
+            </Alert>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={cancelDeleteContact}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteContact}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Contact
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 } 

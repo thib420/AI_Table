@@ -205,23 +205,76 @@ export const graphDataTransformers = {
         emailMap.set(emailKey, contact);
         uniqueContacts.push(contact);
       } else {
-        // Merge data from duplicate contact
-        existing.tags = [...new Set([...existing.tags, ...contact.tags])];
-        existing.dealValue = Math.max(existing.dealValue, contact.dealValue);
-        
-        // Use the most recent last contact date
-        if (new Date(contact.lastContact) > new Date(existing.lastContact)) {
-          existing.lastContact = contact.lastContact;
-        }
+        // Prioritize contact sources: Contacts API > People API > Users API
+        const shouldReplaceExisting = (existing: CRMContact, newContact: CRMContact): boolean => {
+          // Always prioritize 'contact' type over 'person' or 'user'
+          if (newContact.graphType === 'contact' && existing.graphType !== 'contact') {
+            return true;
+          }
+          // Never replace 'contact' type with 'person' or 'user'
+          if (existing.graphType === 'contact' && newContact.graphType !== 'contact') {
+            return false;
+          }
+          // If both are same type, keep existing (first found)
+          return false;
+        };
 
-        // Prefer more complete data
-        if (!existing.phone && contact.phone) existing.phone = contact.phone;
-        if (!existing.company && contact.company) existing.company = contact.company;
-        if (!existing.position && contact.position) existing.position = contact.position;
-        if (!existing.location && contact.location) existing.location = contact.location;
-        if (!existing.notes && contact.notes) existing.notes = contact.notes;
+        if (shouldReplaceExisting(existing, contact)) {
+          // Replace existing with the higher priority contact
+          const indexToReplace = uniqueContacts.findIndex(c => c.id === existing.id);
+          if (indexToReplace !== -1) {
+            // Preserve valuable data from the existing contact before replacing
+            const mergedContact = { ...contact };
+            
+            // Merge tags from both
+            mergedContact.tags = [...new Set([...contact.tags, ...existing.tags])];
+            
+            // Keep higher deal value
+            mergedContact.dealValue = Math.max(contact.dealValue, existing.dealValue);
+            
+            // Use more recent last contact date
+            if (new Date(existing.lastContact) > new Date(contact.lastContact)) {
+              mergedContact.lastContact = existing.lastContact;
+            }
+            
+            // Fill in missing data from existing contact
+            if (!mergedContact.phone && existing.phone) mergedContact.phone = existing.phone;
+            if (!mergedContact.company && existing.company) mergedContact.company = existing.company;
+            if (!mergedContact.position && existing.position) mergedContact.position = existing.position;
+            if (!mergedContact.location && existing.location) mergedContact.location = existing.location;
+            if (!mergedContact.notes && existing.notes) mergedContact.notes = existing.notes;
+            
+            uniqueContacts[indexToReplace] = mergedContact;
+            emailMap.set(emailKey, mergedContact);
+          }
+        } else {
+          // Keep existing contact but merge valuable data from the new one
+          existing.tags = [...new Set([...existing.tags, ...contact.tags])];
+          existing.dealValue = Math.max(existing.dealValue, contact.dealValue);
+          
+          // Use the most recent last contact date
+          if (new Date(contact.lastContact) > new Date(existing.lastContact)) {
+            existing.lastContact = contact.lastContact;
+          }
+
+          // Fill in missing data from new contact
+          if (!existing.phone && contact.phone) existing.phone = contact.phone;
+          if (!existing.company && contact.company) existing.company = contact.company;
+          if (!existing.position && contact.position) existing.position = contact.position;
+          if (!existing.location && contact.location) existing.location = contact.location;
+          if (!existing.notes && contact.notes) existing.notes = contact.notes;
+        }
       }
     });
+
+    console.log(`🔄 Merged duplicates with source prioritization: ${uniqueContacts.length} unique contacts`);
+    
+    // Log contact source distribution for debugging
+    const sourceCount = uniqueContacts.reduce((acc, contact) => {
+      acc[contact.graphType || 'unknown'] = (acc[contact.graphType || 'unknown'] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    console.log('📊 Contact distribution by type:', sourceCount);
 
     return uniqueContacts;
   },

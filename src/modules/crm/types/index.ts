@@ -12,6 +12,7 @@ export interface Contact {
   avatar?: string;
   tags: string[];
   source: string;
+  graphType?: 'contact' | 'person' | 'user' | 'unknown';
 }
 
 export interface Deal {

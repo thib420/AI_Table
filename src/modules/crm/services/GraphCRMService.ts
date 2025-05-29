@@ -527,7 +527,23 @@ export class GraphCRMService {
       console.log('✅ Graph contact created successfully:', graphContact);
 
       const crmContact = graphDataTransformers.contactToCRM(graphContact);
-      return this.crmContactToContact(crmContact);
+      console.log('🔄 CRM contact after transformation:', {
+        id: crmContact.id,
+        name: crmContact.name,
+        source: crmContact.source,
+        graphType: crmContact.graphType,
+        email: crmContact.email
+      });
+      
+      const finalContact = this.crmContactToContact(crmContact);
+      console.log('✅ Final contact created:', {
+        id: finalContact.id,
+        name: finalContact.name,
+        source: finalContact.source,
+        email: finalContact.email
+      });
+      
+      return finalContact;
     } catch (error) {
       console.error('❌ Error creating contact:', error);
       // Provide more detailed error information
@@ -600,10 +616,71 @@ export class GraphCRMService {
   async deleteContact(contactId: string): Promise<void> {
     try {
       await graphServiceManager.initialize();
-      await graphServiceManager.contacts.deleteContact(contactId);
+      
+      console.log(`🗑️ Attempting to delete contact with ID: ${contactId}`);
+      
+      // First, get the contact from our local data to check its source
+      const allContacts = await this.getAllContacts();
+      const contactToDelete = allContacts.find(c => c.id === contactId);
+      
+      if (!contactToDelete) {
+        throw new Error('Contact not found in local data.');
+      }
+      
+      console.log(`📋 Contact details:`, {
+        name: contactToDelete.name,
+        source: contactToDelete.source,
+        graphType: contactToDelete.graphType,
+        email: contactToDelete.email
+      });
+      
+      // Only allow deletion of contacts from the Graph Contacts API
+      if (contactToDelete.graphType !== 'contact') {
+        const errorMessage = contactToDelete.graphType === 'person' 
+          ? 'This contact is from your organization directory (People API) and cannot be deleted. Only personal contacts created in Outlook can be deleted.'
+          : contactToDelete.graphType === 'user'
+          ? 'This is an organizational user account and cannot be deleted from your personal contacts.'
+          : 'This contact cannot be deleted. It may be from your organization directory or external sources. Only personally created Outlook contacts can be deleted.';
+        
+        console.log(`⚠️ Cannot delete contact: ${errorMessage}`);
+        throw new Error(errorMessage);
+      }
+      
+      console.log(`✅ Contact is deletable (graphType: ${contactToDelete.graphType})`);
+      
+      // Try to delete the contact from Graph Contacts API
+      try {
+        await graphServiceManager.contacts.deleteContact(contactId);
+        console.log(`✅ Contact "${contactToDelete.name}" deleted successfully from Microsoft Graph Contacts`);
+      } catch (deleteError) {
+        console.error(`❌ Graph API deletion failed:`, deleteError);
+        
+        // Handle specific Graph API errors
+        if (deleteError instanceof Error) {
+          if (deleteError.message.includes('NotFound') || deleteError.message.includes('does not exist')) {
+            throw new Error('Contact not found in Outlook. It may have already been deleted.');
+          }
+          if (deleteError.message.includes('Forbidden') || deleteError.message.includes('Unauthorized')) {
+            throw new Error('You do not have permission to delete this contact. It may be a shared or organizational contact.');
+          }
+          if (deleteError.message.includes('BadRequest')) {
+            throw new Error('Cannot delete this contact. It may be protected or linked to other data.');
+          }
+        }
+        
+        throw new Error('Failed to delete contact from Outlook. Please try again or delete it directly in Outlook.');
+      }
+      
     } catch (error) {
-      console.error('Error deleting contact:', error);
-      throw error;
+      console.error('❌ Error in deleteContact:', error);
+      
+      // Re-throw our custom error messages
+      if (error instanceof Error && error.message.includes('cannot be deleted')) {
+        throw error;
+      }
+      
+      // Fallback error message
+      throw new Error(error instanceof Error ? error.message : 'Failed to delete contact. Please try again.');
     }
   }
 
@@ -622,7 +699,8 @@ export class GraphCRMService {
       dealValue: crmContact.dealValue,
       avatar: crmContact.avatar,
       tags: crmContact.tags,
-      source: crmContact.source
+      source: crmContact.source,
+      graphType: crmContact.graphType
     };
   }
 
@@ -640,7 +718,9 @@ export class GraphCRMService {
       dealValue: contact.dealValue,
       avatar: contact.avatar,
       tags: contact.tags,
-      source: contact.source
+      source: contact.source || 'Unknown',
+      graphId: contact.id,
+      graphType: (contact as any).graphType || 'unknown'
     };
   }
 
