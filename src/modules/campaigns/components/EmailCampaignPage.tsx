@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Send, 
   Mail, 
@@ -24,7 +25,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,32 +35,11 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
-
-interface Campaign {
-  id: string;
-  name: string;
-  type: 'email' | 'drip' | 'newsletter' | 'promotional';
-  status: 'draft' | 'active' | 'paused' | 'completed' | 'scheduled';
-  subject: string;
-  recipients: number;
-  sent: number;
-  opens: number;
-  clicks: number;
-  conversions: number;
-  createdDate: string;
-  scheduledDate?: string;
-  template: string;
-  tags: string[];
-}
-
-interface Template {
-  id: string;
-  name: string;
-  type: 'welcome' | 'follow-up' | 'newsletter' | 'promotion' | 'custom';
-  description: string;
-  thumbnail: string;
-  isActive: boolean;
-}
+import { CreateCampaignDialog } from './CreateCampaignDialog';
+import { Campaign, Template, CampaignView, EmailCampaignPageProps, CampaignData } from '../types';
+import { CampaignStats } from './CampaignStats';
+import { CampaignFilters } from './CampaignFilters';
+import { CampaignsList } from './CampaignsList';
 
 // Mock data
 const mockCampaigns: Campaign[] = [
@@ -75,7 +56,12 @@ const mockCampaigns: Campaign[] = [
     conversions: 23,
     createdDate: '2024-01-15',
     template: 'Product Launch Template',
-    tags: ['product', 'launch', 'q1']
+    tags: ['product', 'launch', 'q1'],
+    description: '',
+    audience: [],
+    startDate: '2024-01-15',
+    timezone: 'UTC',
+    emailSequence: []
   },
   {
     id: '2',
@@ -90,7 +76,12 @@ const mockCampaigns: Campaign[] = [
     conversions: 15,
     createdDate: '2024-01-10',
     template: 'Welcome Email Template',
-    tags: ['welcome', 'onboarding']
+    tags: ['welcome', 'onboarding'],
+    description: '',
+    audience: [],
+    startDate: '2024-01-10',
+    timezone: 'UTC',
+    emailSequence: []
   },
   {
     id: '3',
@@ -106,7 +97,12 @@ const mockCampaigns: Campaign[] = [
     createdDate: '2024-01-20',
     scheduledDate: '2024-02-01',
     template: 'Newsletter Template',
-    tags: ['newsletter', 'monthly']
+    tags: ['newsletter', 'monthly'],
+    description: '',
+    audience: [],
+    startDate: '2024-02-01',
+    timezone: 'UTC',
+    emailSequence: []
   },
   {
     id: '4',
@@ -121,7 +117,12 @@ const mockCampaigns: Campaign[] = [
     conversions: 8,
     createdDate: '2024-01-05',
     template: 'Re-engagement Template',
-    tags: ['re-engagement', 'inactive']
+    tags: ['re-engagement', 'inactive'],
+    description: '',
+    audience: [],
+    startDate: '2024-01-05',
+    timezone: 'UTC',
+    emailSequence: []
   }
 ];
 
@@ -160,16 +161,12 @@ const mockTemplates: Template[] = [
   }
 ];
 
-type CampaignView = 'campaigns' | 'templates' | 'analytics' | 'automation';
-
-interface EmailCampaignPageProps {
-  onCustomerView?: (customerId: string) => void;
-}
-
 export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {}) {
+  const router = useRouter();
   const [currentView, setCurrentView] = useState<CampaignView>('campaigns');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -231,229 +228,31 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
     }
   };
 
+  const handleCampaignCreate = (campaignData: CampaignData) => {
+    console.log('Creating campaign:', campaignData);
+    // Here you would typically send the data to your backend
+    // For now, we'll just log it and close the dialog
+    setShowCreateDialog(false);
+  };
+
   const renderCampaigns = () => (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-        <div>
-          <h2 className="text-2xl font-bold">Email Campaigns</h2>
-          <p className="text-muted-foreground">Create and manage your marketing campaigns</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search campaigns..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-64"
-            />
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setSelectedStatus('all')}>All Campaigns</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelectedStatus('active')}>Active</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelectedStatus('draft')}>Draft</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelectedStatus('scheduled')}>Scheduled</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelectedStatus('completed')}>Completed</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Campaign
-          </Button>
-        </div>
-      </div>
+      <CampaignFilters
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        selectedStatus={selectedStatus}
+        onStatusChange={setSelectedStatus}
+        onNewCampaign={() => setShowCreateDialog(true)}
+      />
 
-      {/* Campaign Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Campaigns</p>
-                <p className="text-2xl font-bold">{mockCampaigns.length}</p>
-              </div>
-              <Mail className="h-8 w-8 text-blue-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">+3</span> this month
-            </p>
-          </CardContent>
-        </Card>
+      <CampaignStats campaigns={mockCampaigns} />
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Recipients</p>
-                <p className="text-2xl font-bold">
-                  {mockCampaigns.reduce((sum, campaign) => sum + campaign.recipients, 0).toLocaleString()}
-                </p>
-              </div>
-              <Users className="h-8 w-8 text-green-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">+12%</span> growth
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg. Open Rate</p>
-                <p className="text-2xl font-bold">
-                  {mockCampaigns.reduce((sum, campaign) => sum + (campaign.sent > 0 ? (campaign.opens / campaign.sent) * 100 : 0), 0) / mockCampaigns.length || 0}%
-                </p>
-              </div>
-              <Eye className="h-8 w-8 text-orange-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">+2.1%</span> vs last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg. Click Rate</p>
-                <p className="text-2xl font-bold">
-                  {mockCampaigns.reduce((sum, campaign) => sum + (campaign.sent > 0 ? (campaign.clicks / campaign.sent) * 100 : 0), 0) / mockCampaigns.length || 0}%
-                </p>
-              </div>
-              <MousePointerClick className="h-8 w-8 text-purple-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">+0.8%</span> vs last month
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Campaigns List */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="p-4 text-left font-medium">Campaign</th>
-                  <th className="p-4 text-left font-medium">Type</th>
-                  <th className="p-4 text-left font-medium">Status</th>
-                  <th className="p-4 text-left font-medium">Recipients</th>
-                  <th className="p-4 text-left font-medium">Open Rate</th>
-                  <th className="p-4 text-left font-medium">Click Rate</th>
-                  <th className="p-4 text-left font-medium">Conversions</th>
-                  <th className="p-4 text-left font-medium">Created</th>
-                  <th className="p-4 text-left font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockCampaigns
-                  .filter(campaign => 
-                    selectedStatus === 'all' || campaign.status === selectedStatus
-                  )
-                  .filter(campaign =>
-                    searchQuery === '' || 
-                    campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    campaign.subject.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((campaign) => (
-                    <tr key={campaign.id} className="border-b hover:bg-muted/30">
-                      <td className="p-4">
-                        <div>
-                          <p className="font-medium">{campaign.name}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-xs">{campaign.subject}</p>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <Badge variant="outline" className={getTypeColor(campaign.type)}>
-                          {campaign.type}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <Badge className={getStatusColor(campaign.status)}>
-                          {campaign.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4">{campaign.recipients.toLocaleString()}</td>
-                      <td className="p-4">
-                        <div className="flex items-center space-x-2">
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                          <span>{calculateOpenRate(campaign.opens, campaign.sent)}%</span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center space-x-2">
-                          <MousePointerClick className="h-4 w-4 text-muted-foreground" />
-                          <span>{calculateClickRate(campaign.clicks, campaign.sent)}%</span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center space-x-2">
-                          <UserCheck className="h-4 w-4 text-muted-foreground" />
-                          <span>{campaign.conversions}</span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        {new Date(campaign.createdDate).toLocaleDateString()}
-                      </td>
-                      <td className="p-4">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Campaign
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Copy className="h-4 w-4 mr-2" />
-                              Duplicate
-                            </DropdownMenuItem>
-                            {campaign.status === 'active' && (
-                              <DropdownMenuItem>
-                                <Pause className="h-4 w-4 mr-2" />
-                                Pause
-                              </DropdownMenuItem>
-                            )}
-                            {campaign.status === 'paused' && (
-                              <DropdownMenuItem>
-                                <Play className="h-4 w-4 mr-2" />
-                                Resume
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <CampaignsList
+        campaigns={mockCampaigns}
+        searchQuery={searchQuery}
+        selectedStatus={selectedStatus}
+        onViewCustomer={onCustomerView}
+      />
     </div>
   );
 
@@ -465,44 +264,34 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
           <p className="text-muted-foreground">Pre-designed templates for your campaigns</p>
         </div>
         <Button>
-          <Plus className="h-4 w-4 mr-2" />
+          <Mail className="h-4 w-4 mr-2" />
           Create Template
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {mockTemplates.map((template) => (
-          <Card key={template.id} className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-2xl">
-                    {template.thumbnail}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{template.name}</h3>
-                    <Badge variant="outline" className="text-xs">
-                      {template.type}
-                    </Badge>
-                  </div>
+          <div key={template.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-2xl">
+                  {template.thumbnail}
                 </div>
-                {template.isActive && (
-                  <Badge className="bg-green-100 text-green-700">
-                    Active
-                  </Badge>
-                )}
+                <div>
+                  <h3 className="font-semibold">{template.name}</h3>
+                  <span className="text-xs border rounded px-2 py-1">{template.type}</span>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">{template.description}</p>
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  Preview
-                </Button>
-                <Button size="sm" className="flex-1">
-                  Use Template
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              {template.isActive && (
+                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">Active</span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">{template.description}</p>
+            <div className="flex space-x-2">
+              <Button variant="outline" size="sm" className="flex-1">Preview</Button>
+              <Button size="sm" className="flex-1">Use Template</Button>
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -514,122 +303,78 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
         <h2 className="text-2xl font-bold">Campaign Analytics</h2>
         <p className="text-muted-foreground">Detailed performance metrics and insights</p>
       </div>
+      <div className="text-center py-8">
+        <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Analytics Dashboard</h3>
+        <p className="text-muted-foreground">Analytics components coming soon...</p>
+      </div>
+    </div>
+  );
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <BarChart3 className="h-5 w-5" />
-              <span>Performance Overview</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Total Emails Sent</span>
-                <span className="font-medium">3,445</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Total Opens</span>
-                <span className="font-medium">1,628 (47.3%)</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Total Clicks</span>
-                <span className="font-medium">274 (7.9%)</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Total Conversions</span>
-                <span className="font-medium">46 (1.3%)</span>
-              </div>
+  const renderSequenceBuilder = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Email Sequence Builder</h2>
+          <p className="text-muted-foreground">Create and manage automated email sequences</p>
+        </div>
+        <Button onClick={() => router.push('/campaigns/sequence-builder')}>
+          <Zap className="h-4 w-4 mr-2" />
+          Create New Sequence
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Quick Actions */}
+        <Card className="border-2 border-dashed hover:border-primary transition-colors cursor-pointer" 
+              onClick={() => router.push('/campaigns/sequence-builder?name=Welcome%20Series')}>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl mb-4 mx-auto">
+              👋
             </div>
+            <h3 className="font-semibold mb-2">Welcome Series</h3>
+            <p className="text-sm text-muted-foreground">Create an onboarding sequence for new subscribers</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <TrendingUp className="h-5 w-5" />
-              <span>Recent Performance</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {mockCampaigns.slice(0, 3).map((campaign) => (
-                <div key={campaign.id} className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{campaign.name}</p>
-                    <p className="text-xs text-muted-foreground">{campaign.type}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{calculateOpenRate(campaign.opens, campaign.sent)}% open</p>
-                    <p className="text-xs text-muted-foreground">{campaign.sent} sent</p>
-                  </div>
-                </div>
-              ))}
+        <Card className="border-2 border-dashed hover:border-primary transition-colors cursor-pointer"
+              onClick={() => router.push('/campaigns/sequence-builder?name=Product%20Launch')}>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-2xl mb-4 mx-auto">
+              🚀
             </div>
+            <h3 className="font-semibold mb-2">Product Launch</h3>
+            <p className="text-sm text-muted-foreground">Build excitement with a multi-email product launch</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-dashed hover:border-primary transition-colors cursor-pointer"
+              onClick={() => router.push('/campaigns/sequence-builder?name=Nurture%20Campaign')}>
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-2xl mb-4 mx-auto">
+              🌱
+            </div>
+            <h3 className="font-semibold mb-2">Nurture Campaign</h3>
+            <p className="text-sm text-muted-foreground">Educate and engage leads over time</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Top Performing Recipients */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5" />
-            <span>Top Engaging Customers</span>
-          </CardTitle>
-          <CardDescription>
-            Customers with highest engagement rates across campaigns
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[
-              { name: 'Sarah Johnson', email: 'sarah.johnson@techcorp.com', company: 'TechCorp Inc.', opens: 12, clicks: 8, conversions: 2 },
-              { name: 'Michael Chen', email: 'michael.chen@innovate.io', company: 'Innovate.io', opens: 10, clicks: 6, conversions: 3 },
-              { name: 'Emily Rodriguez', email: 'emily.r@globaltech.com', company: 'GlobalTech Solutions', opens: 8, clicks: 4, conversions: 1 }
-            ].map((customer) => (
-              <div key={customer.email} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={`https://ui-avatars.com/api/?name=${encodeURIComponent(customer.name)}&size=64&background=3B82F6&color=fff&bold=true&format=png`} alt={customer.name} />
-                    <AvatarFallback>{customer.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{customer.name}</p>
-                    <p className="text-sm text-muted-foreground">{customer.company}</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-6 text-sm">
-                  <div className="text-center">
-                    <p className="font-medium text-blue-600">{customer.opens}</p>
-                    <p className="text-xs text-muted-foreground">Opens</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-green-600">{customer.clicks}</p>
-                    <p className="text-xs text-muted-foreground">Clicks</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-purple-600">{customer.conversions}</p>
-                    <p className="text-xs text-muted-foreground">Conversions</p>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      const customerId = getCustomerIdFromEmail(customer.email);
-                      if (customerId) handleViewCustomer(customerId);
-                    }}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Customer
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Existing Sequences (placeholder) */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Recent Sequences</h3>
+        <div className="text-center py-8 border rounded-lg bg-muted/30">
+          <Zap className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+          <p className="text-muted-foreground">No sequences created yet</p>
+          <Button 
+            variant="outline" 
+            className="mt-2"
+            onClick={() => router.push('/campaigns/sequence-builder')}
+          >
+            Create Your First Sequence
+          </Button>
+        </div>
+      </div>
     </div>
   );
 
@@ -641,6 +386,8 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
         return renderTemplates();
       case 'analytics':
         return renderAnalytics();
+      case 'sequence':
+        return renderSequenceBuilder();
       default:
         return renderCampaigns();
     }
@@ -683,6 +430,14 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
             <Target className="h-4 w-4 mr-2" />
             Automation
           </Button>
+          <Button
+            variant={currentView === 'sequence' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setCurrentView('sequence')}
+          >
+            <Zap className="h-4 w-4 mr-2" />
+            Sequence
+          </Button>
         </div>
       </div>
 
@@ -690,6 +445,13 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
       <div className="flex-1 overflow-y-auto p-6">
         {renderView()}
       </div>
+
+      {/* Create Campaign Dialog */}
+      <CreateCampaignDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onCampaignCreate={handleCampaignCreate}
+      />
     </div>
   );
 } 
