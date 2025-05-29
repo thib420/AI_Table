@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { 
   Users, 
   CheckCircle, 
@@ -28,7 +29,8 @@ import {
   Briefcase,
   Mail,
   Phone,
-  Tag
+  Tag,
+  Plus
 } from 'lucide-react';
 import { EnrichedExaResultItem } from '../services/ai-column-generator';
 import { Contact } from '@/modules/crm/types';
@@ -61,6 +63,14 @@ interface ProcessingData {
   url: string;
 }
 
+// Common tags for quick selection
+const COMMON_TAGS = [
+  'VIP', 'Enterprise', 'SMB', 'Startup', 'Technology', 'Healthcare', 
+  'Finance', 'Education', 'Government', 'Non-profit', 'Hot-lead', 
+  'Cold-lead', 'Warm-lead', 'Decision-maker', 'Influencer', 'Champion',
+  'LinkedIn', 'Bulk Import', 'AI Search', 'Research'
+];
+
 export function BulkContactCreationDialog({ 
   selectedResults, 
   isOpen, 
@@ -69,6 +79,7 @@ export function BulkContactCreationDialog({
 }: BulkContactCreationDialogProps) {
   const [defaultContactType, setDefaultContactType] = useState<string>('prospect');
   const [defaultTags, setDefaultTags] = useState<string[]>(['LinkedIn', 'Bulk Import']);
+  const [newTag, setNewTag] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatuses, setProcessingStatuses] = useState<ContactCreationStatus[]>([]);
   const [processedCount, setProcessedCount] = useState(0);
@@ -85,6 +96,7 @@ export function BulkContactCreationDialog({
       })));
       setProcessedCount(0);
       setError(null);
+      setNewTag('');
     }
   }, [isOpen, selectedResults]);
 
@@ -92,19 +104,39 @@ export function BulkContactCreationDialog({
   const extractContactData = useCallback((result: EnrichedExaResultItem): ProcessingData => {
     // Extract email from the LinkedIn URL pattern or text content
     const extractEmail = (result: EnrichedExaResultItem): string => {
-      // First check if email is already in a column
-      if ((result as any).email) return (result as any).email;
+      // First priority: Check for AI-generated email columns
+      const aiEmailKeys = [
+        'ai_email',
+        'ai_email_address', 
+        'ai_professional_email',
+        'ai_work_email',
+        'ai_business_email'
+      ];
       
-      // Try to extract from LinkedIn URL pattern
+      for (const key of aiEmailKeys) {
+        const aiEmail = (result as any)[key];
+        if (aiEmail && typeof aiEmail === 'string' && aiEmail.includes('@')) {
+          return aiEmail.trim();
+        }
+      }
+      
+      // Second priority: Check if email is already in a regular column
+      if ((result as any).email && typeof (result as any).email === 'string' && (result as any).email.includes('@')) {
+        return (result as any).email.trim();
+      }
+      
+      // Third priority: Try to extract from text content using email regex
+      const emailMatch = result.text.match(/[\w\.-]+@[\w\.-]+\.\w+/);
+      if (emailMatch && emailMatch[0]) {
+        return emailMatch[0].trim();
+      }
+      
+      // Last resort: Try to extract from LinkedIn URL pattern (placeholder)
       const urlMatch = result.url.match(/linkedin\.com\/in\/([^\/]+)/);
       if (urlMatch) {
         const username = urlMatch[1].replace(/-/g, '.');
         return `${username}@company.com`; // Placeholder email pattern
       }
-      
-      // Try to extract from text content
-      const emailMatch = result.text.match(/[\w\.-]+@[\w\.-]+\.\w+/);
-      if (emailMatch) return emailMatch[0];
       
       return '';
     };
@@ -172,6 +204,10 @@ export function BulkContactCreationDialog({
       return;
     }
 
+    // Capture current tag state to ensure consistency during async operations
+    const currentTags = [...defaultTags];
+    console.log('🏷️ Tags to be applied to all contacts:', currentTags);
+
     setIsProcessing(true);
     setError(null);
     
@@ -195,6 +231,10 @@ export function BulkContactCreationDialog({
             throw new Error('Name and email are required');
           }
 
+          // Prepare final tags (default tags + company tag if available)
+          const finalTags = [...currentTags, ...(contactData.company ? [contactData.company] : [])];
+          console.log(`📝 Creating contact ${contactData.name} with tags:`, finalTags);
+
           // Create contact via GraphCRMService
           const newContact = await graphCRMService.createContact({
             name: contactData.name,
@@ -205,10 +245,12 @@ export function BulkContactCreationDialog({
             location: contactData.location,
             status: defaultContactType as Contact['status'],
             dealValue: 0,
-            tags: [...defaultTags, ...(contactData.company ? [contactData.company] : [])],
+            tags: finalTags, // Tags sync as categories in Outlook
             source: contactData.source,
             lastContact: new Date().toISOString().split('T')[0]
           });
+
+          console.log(`✅ Contact ${contactData.name} created with tags:`, newContact.tags);
 
           // Update status to success
           updatedStatuses[resultIndex] = { 
@@ -271,6 +313,21 @@ export function BulkContactCreationDialog({
   const successCount = processingStatuses.filter(s => s.status === 'success').length;
   const errorCount = processingStatuses.filter(s => s.status === 'error').length;
   const progressPercent = selectedResults.length > 0 ? (processedCount / selectedCount) * 100 : 0;
+
+  const handleAddTag = (tag: string) => {
+    if (tag && !defaultTags.includes(tag)) {
+      const newTags = [...defaultTags, tag];
+      setDefaultTags(newTags);
+      setNewTag('');
+      console.log('➕ Tag added:', tag, 'Current tags:', newTags);
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const newTags = defaultTags.filter(tag => tag !== tagToRemove);
+    setDefaultTags(newTags);
+    console.log('➖ Tag removed:', tagToRemove, 'Current tags:', newTags);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -437,22 +494,83 @@ export function BulkContactCreationDialog({
           </div>
 
           {/* Default Tags */}
-          <div className="space-y-2">
-            <Label>Default Tags (will be applied to all contacts)</Label>
-            <div className="flex flex-wrap gap-2">
-              {defaultTags.map((tag, index) => (
-                <Badge key={index} variant="secondary" className="flex items-center space-x-1">
-                  <Tag className="h-3 w-3" />
-                  <span>{tag}</span>
-                  <button
-                    type="button"
-                    onClick={() => setDefaultTags(defaultTags.filter((_, i) => i !== index))}
-                    className="ml-1 text-muted-foreground hover:text-foreground"
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium flex items-center space-x-2">
+              <Tag className="h-5 w-5" />
+              <span>Default Tags</span>
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              These tags will be applied to all created contacts and synced as categories in Outlook
+            </p>
+            
+            {/* Current Tags */}
+            {defaultTags.length > 0 && (
+              <div className="space-y-2">
+                <Label>Current Tags</Label>
+                <div className="flex flex-wrap gap-2">
+                  {defaultTags.map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center space-x-1">
+                      <span>{tag}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(tag)}
+                        className="ml-1 text-muted-foreground hover:text-foreground"
+                        disabled={isProcessing}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Tags */}
+            <div className="space-y-2">
+              <Label>Quick Tags - (Categories in Outlook)</Label>
+              <div className="flex flex-wrap gap-2">
+                {COMMON_TAGS.filter(tag => !defaultTags.includes(tag)).map((tag) => (
+                  <Button
+                    key={tag}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddTag(tag)}
+                    className="text-xs"
+                    disabled={isProcessing}
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
+                    <Plus className="h-3 w-3 mr-1" />
+                    {tag}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Tag Input */}
+            <div className="space-y-2">
+              <Label htmlFor="newTag">Add Custom Tag</Label>
+              <div className="flex space-x-2">
+                <Input
+                  id="newTag"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  placeholder="Enter custom tag"
+                  disabled={isProcessing}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTag(newTag);
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleAddTag(newTag)}
+                  disabled={!newTag.trim() || isProcessing}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>

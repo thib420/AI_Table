@@ -3,7 +3,7 @@ import {
   graphDataTransformers,
   withRetry
 } from '@/shared/services/microsoft-graph';
-import { CRMContact, CRMCompany } from '@/shared/services/microsoft-graph/types';
+import { CRMContact, CRMCompany, GraphContact } from '@/shared/services/microsoft-graph/types';
 import { Contact, Deal, Company } from '../types';
 
 export class GraphCRMService {
@@ -500,22 +500,40 @@ export class GraphCRMService {
   async createContact(contactData: Partial<Contact>): Promise<Contact> {
     try {
       await graphServiceManager.initialize();
-      const graphContact = await graphServiceManager.contacts.createContact({
-        displayName: contactData.name,
-        givenName: contactData.name?.split(' ')[0],
-        surname: contactData.name?.split(' ').slice(1).join(' '),
-        emailAddresses: contactData.email ? [{ address: contactData.email }] : [],
-        businessPhones: contactData.phone ? [contactData.phone] : [],
-        jobTitle: contactData.position,
-        companyName: contactData.company,
-        officeLocation: contactData.location,
-        categories: contactData.tags || []
-      });
+      
+      // Validate and clean the contact data before sending to Graph API
+      const displayName = contactData.name?.trim() || 'Unknown Contact';
+      const nameParts = displayName.split(' ').filter(part => part.length > 0);
+      const givenName = nameParts[0] || '';
+      const surname = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      
+      // Prepare the contact data with proper validation
+      const graphContactData: Partial<GraphContact> = {
+        displayName: displayName,
+        givenName: givenName || undefined,
+        surname: surname || undefined,
+        emailAddresses: contactData.email?.trim() ? [{ address: contactData.email.trim() }] : [],
+        businessPhones: contactData.phone?.trim() ? [contactData.phone.trim()] : [],
+        jobTitle: contactData.position?.trim() || undefined,
+        companyName: contactData.company?.trim() || undefined,
+        officeLocation: contactData.location?.trim() || undefined,
+        categories: contactData.tags?.filter(tag => tag && tag.trim().length > 0) || []
+      };
+
+      console.log('📝 Creating contact with data:', graphContactData);
+
+      const graphContact = await graphServiceManager.contacts.createContact(graphContactData);
+
+      console.log('✅ Graph contact created successfully:', graphContact);
 
       const crmContact = graphDataTransformers.contactToCRM(graphContact);
       return this.crmContactToContact(crmContact);
     } catch (error) {
-      console.error('Error creating contact:', error);
+      console.error('❌ Error creating contact:', error);
+      // Provide more detailed error information
+      if (error instanceof Error) {
+        throw new Error(`Failed to create contact: ${error.message}`);
+      }
       throw error;
     }
   }
@@ -524,20 +542,56 @@ export class GraphCRMService {
   async updateContact(contactId: string, updates: Partial<Contact>): Promise<Contact> {
     try {
       await graphServiceManager.initialize();
-      const graphContact = await graphServiceManager.contacts.updateContact(contactId, {
-        displayName: updates.name,
-        emailAddresses: updates.email ? [{ address: updates.email }] : undefined,
-        businessPhones: updates.phone ? [updates.phone] : undefined,
-        jobTitle: updates.position,
-        companyName: updates.company,
-        officeLocation: updates.location,
-        categories: updates.tags
-      });
+      
+      // Validate and clean the update data
+      const updateData: Partial<GraphContact> = {};
+      
+      if (updates.name !== undefined) {
+        const displayName = updates.name?.trim() || 'Unknown Contact';
+        const nameParts = displayName.split(' ').filter(part => part.length > 0);
+        updateData.displayName = displayName;
+        updateData.givenName = nameParts[0] || undefined;
+        updateData.surname = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
+      }
+      
+      if (updates.email !== undefined) {
+        updateData.emailAddresses = updates.email?.trim() ? [{ address: updates.email.trim() }] : [];
+      }
+      
+      if (updates.phone !== undefined) {
+        updateData.businessPhones = updates.phone?.trim() ? [updates.phone.trim()] : [];
+      }
+      
+      if (updates.position !== undefined) {
+        updateData.jobTitle = updates.position?.trim() || undefined;
+      }
+      
+      if (updates.company !== undefined) {
+        updateData.companyName = updates.company?.trim() || undefined;
+      }
+      
+      if (updates.location !== undefined) {
+        updateData.officeLocation = updates.location?.trim() || undefined;
+      }
+      
+      if (updates.tags !== undefined) {
+        updateData.categories = updates.tags?.filter(tag => tag && tag.trim().length > 0) || [];
+      }
+
+      console.log('📝 Updating contact with data:', updateData);
+
+      const graphContact = await graphServiceManager.contacts.updateContact(contactId, updateData);
+
+      console.log('✅ Graph contact updated successfully:', graphContact);
 
       const crmContact = graphDataTransformers.contactToCRM(graphContact);
       return this.crmContactToContact(crmContact);
     } catch (error) {
-      console.error('Error updating contact:', error);
+      console.error('❌ Error updating contact:', error);
+      // Provide more detailed error information
+      if (error instanceof Error) {
+        throw new Error(`Failed to update contact: ${error.message}`);
+      }
       throw error;
     }
   }
