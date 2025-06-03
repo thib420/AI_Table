@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CustomerProfile, CustomerInteraction, Contact } from '../types';
-import { customer360Service } from '../services/Customer360Service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useMicrosoftAuth } from '@/modules/mailbox/services/MicrosoftAuthContext';
+import { useCustomer360Cache } from '../hooks/useCustomer360Cache';
+import { customer360Cache } from '../services/Customer360CacheService';
 import { 
   ArrowLeft, 
   Mail, 
@@ -40,43 +40,21 @@ interface Customer360ViewProps {
 
 export function Customer360View({ customerEmail, onBack }: Customer360ViewProps) {
   const { isSignedIn } = useMicrosoftAuth();
-  const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  // Use the cached hook instead of manual state management
+  const {
+    customerProfile,
+    isLoading,
+    error,
+    isFromCache,
+    cacheStats,
+    refreshProfile,
+    invalidateCache
+  } = useCustomer360Cache(customerEmail);
   
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
-
-  useEffect(() => {
-    console.log('🎯 Customer360View: Component mounted with email:', customerEmail);
-    console.log('🎯 Customer360View: isSignedIn:', isSignedIn);
-    console.log('🎯 Customer360View: Component props:', { customerEmail, onBack });
-    if (!customerEmail) {
-      console.error('🎯 Customer360View: No customerEmail provided!');
-      setError('No customer email provided');
-      setIsLoading(false);
-      return;
-    }
-    loadCustomerProfile();
-  }, [customerEmail]);
-
-  const loadCustomerProfile = async () => {
-    try {
-      console.log('🎯 Customer360View: Starting to load profile for:', customerEmail);
-      setIsLoading(true);
-      setError(null);
-      const profile = await customer360Service.getCustomerProfile(customerEmail);
-      console.log('🎯 Customer360View: Profile loaded:', profile);
-      setCustomerProfile(profile);
-    } catch (err) {
-      console.error('🎯 Customer360View: Error loading customer profile:', err);
-      setError('Failed to load customer profile');
-    } finally {
-      console.log('🎯 Customer360View: Loading finished');
-      setIsLoading(false);
-    }
-  };
 
   const handleEditContact = () => {
     if (customerProfile?.contact) {
@@ -87,10 +65,12 @@ export function Customer360View({ customerEmail, onBack }: Customer360ViewProps)
 
   const handleContactUpdated = (updatedContact: Contact) => {
     if (customerProfile) {
-      setCustomerProfile({
+      // Update the cached profile with the new contact data
+      const updatedProfile = {
         ...customerProfile,
         contact: updatedContact
-      });
+      };
+      customer360Cache.update(customerEmail, updatedProfile);
     }
   };
 
@@ -166,6 +146,26 @@ export function Customer360View({ customerEmail, onBack }: Customer360ViewProps)
               Back
             </Button>
             <h2 className="text-lg font-semibold">Customer 360</h2>
+            {/* Cache indicator */}
+            {isFromCache && (
+              <Badge variant="outline" className="text-xs">
+                <Clock className="h-3 w-3 mr-1" />
+                Cached
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            {/* Cache stats (dev mode) */}
+            {process.env.NODE_ENV === 'development' && (
+              <Badge variant="secondary" className="text-xs">
+                {cacheStats.hitRate.toFixed(0)}% hit rate ({cacheStats.cacheSize} cached)
+              </Badge>
+            )}
+            {/* Refresh button */}
+            <Button variant="outline" size="sm" onClick={refreshProfile} disabled={isLoading}>
+              <Activity className="h-4 w-4 mr-2" />
+              {isLoading ? 'Loading...' : 'Refresh'}
+            </Button>
           </div>
         </div>
       </div>

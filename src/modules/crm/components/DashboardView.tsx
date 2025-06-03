@@ -1,305 +1,120 @@
-import React from 'react';
-import { 
-  Users, 
-  Building2, 
-  TrendingUp, 
-  DollarSign, 
-  Target,
-  Activity,
-  Mail,
-  Calendar,
-  UserPlus
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { graphCRMService } from '../services/GraphCRMService';
+import React, { useState, useEffect } from 'react';
+import { usePersistentData } from '@/shared/hooks/usePersistentData';
+import { unifiedCRMService } from '../services/UnifiedCRMService';
 import { Contact, Deal, Company } from '../types';
-import { crmCache } from '../services/crmCache';
-import { getStageColor } from '../utils/helpers';
+import { StatsGrid } from './dashboard/StatsGrid';
+import { ActivityChart } from './dashboard/ActivityChart';
+import { RecentDeals } from './dashboard/RecentDeals';
+import { TopContacts } from './dashboard/TopContacts';
+import { LoadingSpinner } from '@/components/ui/loading';
 
 export function DashboardView() {
-  const [contacts, setContacts] = React.useState<Contact[]>([]);
-  const [deals, setDeals] = React.useState<Deal[]>([]);
-  const [companies, setCompanies] = React.useState<Company[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const persistentData = usePersistentData();
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+
     const loadData = async () => {
-      // **OPTIMIZATION: Check in-memory cache first**
-      const cachedData = crmCache.get();
-      if (cachedData && (cachedData.contacts.length > 0 || cachedData.deals.length > 0 || cachedData.companies.length > 0)) {
-        console.log('⚡ Using CRM dashboard cache - instant load!');
-        setContacts(cachedData.contacts);
-        setDeals(cachedData.deals);
-        setCompanies(cachedData.companies);
-        setLoading(false);
-        
-        // Load fresh data in background
-        console.log('🔄 Starting background sync for dashboard...');
-        loadDataInBackground();
-        return;
-      }
+      if (!persistentData.isInitialized) return;
+      
+      setLoading(true);
+      
+      // Subscribe to persistent data updates
+      console.log('📊 DashboardView: Subscribing to persistent data service');
+      console.log('📊 Persistent mode:', persistentData.isPersistentMode ? 'ENABLED' : 'DISABLED (fallback)');
+      
+      unsubscribe = persistentData.subscribe('dashboard', async (data) => {
+        console.log('📊 DashboardView: Received data update', {
+          contacts: data.contacts.length,
+          emails: data.emails.length,
+          meetings: data.meetings.length,
+          isLoading: data.isLoading,
+          persistentMode: persistentData.isPersistentMode
+        });
 
-      // No cache available, show loading and load fresh data
-      try {
-        setLoading(true);
-        console.log('📥 No CRM cache available, loading fresh data...');
-        const [contactsData, dealsData, companiesData] = await Promise.all([
-          graphCRMService.getAllContacts(),
-          graphCRMService.getDeals(),
-          graphCRMService.getCompanies()
-        ]);
-        
-        setContacts(contactsData);
-        setDeals(dealsData);
-        setCompanies(companiesData);
-        
-        // Update cache with fresh data
-        crmCache.setAll(contactsData, dealsData, companiesData);
-      } catch (error) {
-        console.error('Error loading dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+        // If still loading, wait
+        if (data.isLoading) {
+          setLoading(true);
+          return;
+        }
 
-    const loadDataInBackground = async () => {
+        try {
+          // Get all data from unified service
+          const [contactsData, dealsData, companiesData] = await Promise.all([
+            unifiedCRMService.getAllContacts(),
+            unifiedCRMService.getDeals(),
+            unifiedCRMService.getCompanies()
+          ]);
+          
+          setContacts(contactsData);
+          setDeals(dealsData);
+          setCompanies(companiesData);
+          setLoading(false);
+          
+          console.log('✅ Dashboard data loaded from persistent unified service');
+        } catch (error) {
+          console.error('❌ Failed to process unified data:', error);
+          setLoading(false);
+        }
+      });
+
+      // Trigger initial data load
       try {
-        console.log('🔄 Background dashboard sync started...');
-        const [contactsData, dealsData, companiesData] = await Promise.all([
-          graphCRMService.getAllContacts(),
-          graphCRMService.getDeals(),
-          graphCRMService.getCompanies()
-        ]);
-        
-        // Update cache and state with fresh data
-        crmCache.setAll(contactsData, dealsData, companiesData);
-        setContacts(contactsData);
-        setDeals(dealsData);
-        setCompanies(companiesData);
-        
-        console.log('✅ Background dashboard sync completed');
+        await persistentData.getData();
       } catch (error) {
-        console.error('❌ Background dashboard sync failed:', error);
+        console.error('❌ Failed to load unified data:', error);
+        setLoading(false);
       }
     };
 
     loadData();
-  }, []);
 
-  // Generate recent activities from real data
-  const getRecentActivities = () => {
-    const activities = [];
-    
-    // Add recent deals as activities
-    deals.slice(0, 2).forEach(deal => {
-      activities.push({
-        id: `deal-${deal.id}`,
-        type: 'deal',
-        icon: Target,
-        color: 'bg-orange-500',
-        message: `Deal "${deal.title}" created`,
-        time: `${deal.company}`,
-        timestamp: deal.createdDate
-      });
-    });
-
-    // Add recent contacts as activities
-    contacts.slice(0, 2).forEach(contact => {
-      activities.push({
-        id: `contact-${contact.id}`,
-        type: 'contact',
-        icon: UserPlus,
-        color: 'bg-blue-500',
-        message: `New contact added: ${contact.name}`,
-        time: `${contact.company}`,
-        timestamp: contact.lastContact
-      });
-    });
-
-    // Sort by timestamp (most recent first)
-    return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 3);
-  };
-
-  const formatActivityTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays > 0) {
-      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    } else if (diffHours > 0) {
-      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    } else {
-      return 'Less than an hour ago';
-    }
-  };
+    // Cleanup subscription on unmount
+    return () => {
+      if (unsubscribe) {
+        console.log('📊 DashboardView: Unsubscribing from persistent data service');
+        unsubscribe();
+      }
+    };
+  }, [persistentData.isInitialized]);
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner message={
+          persistentData.isPersistentMode 
+            ? "Loading from persistent cache..." 
+            : "Loading data..."
+        } />
       </div>
     );
   }
 
-  const recentActivities = getRecentActivities();
-
   return (
     <div className="space-y-6">
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Contacts</p>
-                <p className="text-2xl font-bold">{contacts.length}</p>
-              </div>
-              <Users className="h-8 w-8 text-blue-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">Live data</span> from Microsoft Graph
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Deals</p>
-                <p className="text-2xl font-bold">{deals.filter(d => !d.stage.startsWith('closed')).length}</p>
-              </div>
-              <Target className="h-8 w-8 text-orange-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">Derived</span> from emails & meetings
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pipeline Value</p>
-                <p className="text-2xl font-bold">
-                  ${deals.reduce((sum, deal) => sum + deal.value, 0).toLocaleString()}
-                </p>
-              </div>
-              <DollarSign className="h-8 w-8 text-green-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">Estimated</span> from interactions
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Companies</p>
-                <p className="text-2xl font-bold">{companies.length}</p>
-              </div>
-              <Building2 className="h-8 w-8 text-purple-600" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">Extracted</span> from contacts
-            </p>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">CRM Dashboard</h1>
+        <div className="text-sm text-muted-foreground">
+          {persistentData.isPersistentMode ? (
+            <span className="text-green-600">📈 Persistent Cache Active</span>
+          ) : (
+            <span className="text-orange-600">⚡ Fallback Mode</span>
+          )}
+        </div>
       </div>
-
-      {/* Recent Activity and Pipeline */}
+      
+      <StatsGrid contacts={contacts} deals={deals} companies={companies} />
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Activity className="h-5 w-5" />
-              <span>Recent Activity</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {recentActivities.length > 0 ? (
-              recentActivities.map((activity) => {
-                const IconComponent = activity.icon;
-                return (
-                  <div key={activity.id} className="flex items-center space-x-3">
-                    <div className={`w-2 h-2 ${activity.color} rounded-full`}></div>
-                    <div className="flex-1">
-                      <p className="text-sm">{activity.message}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.time} • {formatActivityTime(activity.timestamp)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8">
-                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No recent activity</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Activity will appear here as you interact with contacts and create deals
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <TrendingUp className="h-5 w-5" />
-              <span>Deal Pipeline</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {deals.filter(d => !d.stage.startsWith('closed')).length > 0 ? (
-              deals.filter(d => !d.stage.startsWith('closed')).map((deal) => (
-                <div key={deal.id} className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{deal.title}</p>
-                    <div className="flex items-center space-x-2">
-                      <Badge className={getStageColor(deal.stage)}>
-                        {deal.stage.replace('-', ' ')}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{deal.probability}%</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">${deal.value.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">{deal.company}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">No active deals</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Deals are automatically created from high-priority emails and meetings
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ActivityChart deals={deals} />
+        <RecentDeals deals={deals} />
       </div>
+      
+      <TopContacts contacts={contacts} />
     </div>
   );
 } 

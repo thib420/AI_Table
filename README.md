@@ -61,6 +61,9 @@ Works without Microsoft connection using sample data.
 3. **Set up environment variables**
    Create a `.env.local` file in the root directory:
    ```env
+   # Persistent Data Caching (NEW!)
+   NEXT_PUBLIC_USE_PERSISTENT_CACHE=true
+
    # Supabase Configuration
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -77,7 +80,16 @@ Works without Microsoft connection using sample data.
    ```
 
 4. **Set up Supabase database**
-   Run this SQL in your Supabase SQL editor:
+   
+   **IMPORTANT**: Run the persistent data migration first!
+   
+   The SQL migration has already been applied to your database. If you need to run it manually:
+   ```sql
+   -- Persistent data caching tables are already created!
+   -- See supabase_migrations_persistent_unified_data.sql for full schema
+   ```
+   
+   For the search functionality, also run:
    ```sql
    -- Create saved_searches table
    CREATE TABLE saved_searches (

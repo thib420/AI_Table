@@ -168,6 +168,8 @@ export function useMailbox() {
           console.log('✅ Email cache initialized');
         } catch (error) {
           console.error('❌ Failed to initialize email cache:', error);
+          // Mark as initialized even if it failed to prevent infinite retries
+          setCacheInitialized(true);
         }
       }
     };
@@ -245,38 +247,58 @@ export function useMailbox() {
 
   // Load emails and folders from cache (instant loading)
   const loadFromCache = useCallback(async () => {
-    if (!user || !cacheInitialized) return;
+    if (!user || !cacheInitialized) {
+      console.log('📦 Cache not available, skipping cache load');
+      return;
+    }
 
     try {
       setIsLoadingFromCache(true);
       console.log('📦 Loading emails from cache...');
 
-      // Load folders from cache
-      const cachedFolders = await emailCacheService.getCachedFolders();
-      if (cachedFolders.length > 0) {
-        console.log(`📁 Loaded ${cachedFolders.length} folders from cache`);
-        setFolders(cachedFolders);
+      // Load folders from cache with error handling
+      try {
+        const cachedFolders = await emailCacheService.getCachedFolders();
+        if (cachedFolders.length > 0) {
+          console.log(`📁 Loaded ${cachedFolders.length} folders from cache`);
+          setFolders(cachedFolders);
+        } else {
+          console.log('📁 No cached folders found, using defaults');
+          setFolders(getDefaultFolders());
+        }
+      } catch (folderError) {
+        console.warn('⚠️ Failed to load folders from cache, using defaults:', folderError);
+        setFolders(getDefaultFolders());
       }
 
-      // Load emails from cache
-      const cachedEmails = await emailCacheService.getCachedEmails();
-      if (cachedEmails.length > 0) {
-        console.log(`📧 Loaded ${cachedEmails.length} emails from cache`);
-        setAllEmails(cachedEmails);
-        setIsDataLoaded(true);
-        
-        // Update in-memory cache from Supabase cache
-        mailboxCache.set(cachedEmails, folders);
-        
-        // Sync cached contacts to CRM in background
-        contactSyncService.syncContactsInBackground(cachedEmails).catch(error => {
-          console.error('❌ useMailbox: Cached contact sync failed:', error);
-        });
+      // Load emails from cache with error handling
+      try {
+        const cachedEmails = await emailCacheService.getCachedEmails();
+        if (cachedEmails.length > 0) {
+          console.log(`📧 Loaded ${cachedEmails.length} emails from cache`);
+          setAllEmails(cachedEmails);
+          setIsDataLoaded(true);
+          
+          // Update in-memory cache from Supabase cache
+          mailboxCache.set(cachedEmails, folders);
+          
+          // Sync cached contacts to CRM in background
+          contactSyncService.syncContactsInBackground(cachedEmails).catch(error => {
+            console.error('❌ useMailbox: Cached contact sync failed:', error);
+          });
+        } else {
+          console.log('📧 No cached emails found');
+        }
+      } catch (emailError) {
+        console.warn('⚠️ Failed to load emails from cache:', emailError);
+        // Don't throw, just continue without cache
       }
 
-      console.log('✅ Cache load complete');
+      console.log('✅ Cache load attempt complete');
     } catch (error) {
       console.error('❌ Failed to load from cache:', error);
+      // Fallback to default folders if everything fails
+      setFolders(getDefaultFolders());
     } finally {
       setIsLoadingFromCache(false);
     }
@@ -414,7 +436,8 @@ export function useMailbox() {
             displayName: f.displayName
           })));
         } catch (error) {
-          console.error('⚠️ Failed to ensure folders exist:', error);
+          console.warn('⚠️ Failed to ensure folders exist, continuing without cache:', error);
+          // Continue without failing the entire email load
         }
       }
 

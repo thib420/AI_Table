@@ -36,11 +36,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { unifiedCRMService } from '../services/UnifiedCRMService';
 import { graphCRMService } from '../services/GraphCRMService';
 import { Contact } from '../types';
 import { getStatusColor, generateProfilePicture } from '../utils/helpers';
 import { EditContactDialog } from './EditContactDialog';
-import { crmCache } from '../services/crmCache';
+import { usePersistentData } from '@/shared/hooks/usePersistentData';
 
 interface ContactsViewProps {
   onContactView: (contactId: string) => void;
@@ -51,6 +52,7 @@ type SortField = 'name' | 'company' | 'status' | 'dealValue' | 'lastContact';
 type SortDirection = 'asc' | 'desc';
 
 export function ContactsView({ onContactView }: ContactsViewProps) {
+  const persistentData = usePersistentData();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -71,53 +73,65 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   React.useEffect(() => {
+    if (!persistentData.isInitialized) return;
+    
+    let unsubscribe: (() => void) | null = null;
+
     const loadContacts = async () => {
-      // **OPTIMIZATION: Check in-memory cache first**
-      const cachedContacts = crmCache.getContacts();
-      if (cachedContacts && cachedContacts.length > 0) {
-        console.log('⚡ Using CRM contacts cache - instant load!');
-        setContacts(cachedContacts);
-        setLoading(false);
-        
-        // Load fresh data in background
-        console.log('🔄 Starting background sync for contacts...');
-        loadContactsInBackground();
-        return;
-      }
+      setLoading(true);
+      
+      // Subscribe to persistent data updates
+      console.log('📊 ContactsView: Subscribing to persistent data service');
+      console.log('📊 Persistent mode:', persistentData.isPersistentMode ? 'ENABLED' : 'DISABLED (fallback)');
+      
+      unsubscribe = persistentData.subscribe('contacts-view', async (data: any) => {
+        console.log('📊 ContactsView: Received data update', {
+          contacts: data.contacts.length,
+          isLoading: data.isLoading,
+          persistentMode: persistentData.isPersistentMode
+        });
 
-      // No cache available, show loading and load fresh data
-      try {
-        setLoading(true);
-        console.log('📥 No contacts cache available, loading fresh data...');
-        const contactsData = await graphCRMService.getAllContacts();
-        setContacts(contactsData);
-        
-        // Update cache with fresh data
-        crmCache.setContacts(contactsData);
-      } catch (error) {
-        console.error('Error loading contacts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+        // Convert CRM contacts to Contact type
+        const convertedContacts = data.contacts.map((crmContact: any) => ({
+          id: crmContact.id,
+          name: crmContact.name,
+          email: crmContact.email,
+          phone: crmContact.phone,
+          company: crmContact.company,
+          position: crmContact.position,
+          location: crmContact.location,
+          status: crmContact.status,
+          lastContact: crmContact.lastContact.split('T')[0],
+          dealValue: crmContact.dealValue,
+          avatar: crmContact.avatar,
+          tags: crmContact.tags,
+          source: crmContact.source,
+          graphType: crmContact.graphType
+        }));
 
-    const loadContactsInBackground = async () => {
+        setContacts(convertedContacts);
+        setLoading(data.isLoading);
+      });
+
+      // Trigger initial data load
       try {
-        console.log('🔄 Background contacts sync started...');
-        const contactsData = await graphCRMService.getAllContacts();
-        
-        // Update cache and state with fresh data
-        crmCache.setContacts(contactsData);
-        setContacts(contactsData);
-        
-        console.log('✅ Background contacts sync completed');
+        await persistentData.getData();
       } catch (error) {
-        console.error('❌ Background contacts sync failed:', error);
+        console.error('❌ Failed to load unified data:', error);
+        setLoading(false);
       }
     };
 
     loadContacts();
-  }, []);
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (unsubscribe) {
+        console.log('📊 ContactsView: Unsubscribing from persistent data service');
+        unsubscribe();
+      }
+    };
+  }, [persistentData.isInitialized]);
 
   // Get unique categories from all contacts
   const allCategories = React.useMemo(() => {

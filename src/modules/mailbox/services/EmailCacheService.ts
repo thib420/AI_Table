@@ -60,35 +60,57 @@ interface SyncStatus {
 
 export class EmailCacheService {
   private userId: string | null = null;
+  private isInitialized = false;
+  private disableDatabaseOperations = false; // Flag to disable database operations if they fail
 
   async initialize(userId: string): Promise<void> {
-    this.userId = userId;
-    
-    // Initialize sync status if it doesn't exist
-    const { data: existingStatus } = await supabase
-      .from('email_sync_status')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    if (!userId) {
+      console.warn('⚠️ EmailCacheService: No userId provided');
+      this.disableDatabaseOperations = true;
+      return;
+    }
 
-    if (!existingStatus) {
-      await supabase
+    this.userId = userId;
+
+    try {
+      // Test database connectivity with a simple query
+      console.log('📊 Testing database connectivity...');
+      const { error } = await supabase
         .from('email_sync_status')
-        .insert({
-          user_id: userId,
-          sync_enabled: true,
-          sync_interval_minutes: 15,
-          max_emails_per_folder: 100,
-          total_emails_cached: 0,
-          total_folders_cached: 0,
-          next_sync_due_at: new Date().toISOString()
+        .select('id')
+        .limit(1);
+
+      if (error) {
+        console.warn('⚠️ EmailCacheService: Database not available, disabling cache. Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details
         });
+        this.disableDatabaseOperations = true;
+        this.isInitialized = true;
+        return;
+      }
+
+      console.log('✅ Database connectivity test passed');
+      
+      // Initialize sync status if it doesn't exist
+      await this.initializeSyncStatus();
+      this.isInitialized = true;
+      console.log('✅ EmailCacheService initialized successfully');
+    } catch (error) {
+      console.warn('⚠️ EmailCacheService: Initialization failed, disabling database operations. Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
+      this.disableDatabaseOperations = true;
+      this.isInitialized = true;
     }
   }
 
   private ensureUserId(): string {
     if (!this.userId) {
-      throw new Error('EmailCacheService not initialized with user ID');
+      throw new Error('EmailCacheService not initialized with userId');
     }
     return this.userId;
   }
@@ -96,6 +118,11 @@ export class EmailCacheService {
   // ===== FOLDER OPERATIONS =====
 
   async ensureFoldersExist(folderMappings: Array<{graphId: string, folderType: string, displayName: string}>): Promise<void> {
+    if (this.disableDatabaseOperations) {
+      console.log('📊 Database operations disabled, skipping folder creation');
+      return;
+    }
+
     const userId = this.ensureUserId();
     
     console.log(`📁 Ensuring ${folderMappings.length} folders exist in cache...`);
@@ -200,37 +227,56 @@ export class EmailCacheService {
     folderType: string;
     displayName: string;
   }>): Promise<void> {
-    const userId = this.ensureUserId();
-    
-    console.log(`📁 Ensuring ${folderMappings.length} system folders exist in cache...`);
-
-    // Prepare folder data for system folders
-    const folderData = folderMappings.map(mapping => ({
-      user_id: userId,
-      graph_folder_id: mapping.graphId,
-      display_name: mapping.displayName,
-      parent_folder_id: null,
-      unread_count: 0,
-      total_count: 0,
-      is_system_folder: true,
-      folder_type: mapping.folderType,
-      last_synced_at: new Date().toISOString()
-    }));
-
-    // Use upsert to create folders if they don't exist
-    const { error } = await supabase
-      .from('email_folders')
-      .upsert(folderData, { 
-        onConflict: 'user_id,graph_folder_id',
-        ignoreDuplicates: true // Don't update existing folders, just ensure they exist
-      });
-
-    if (error) {
-      console.error('Error ensuring folders exist:', error);
-      throw error;
+    if (this.disableDatabaseOperations) {
+      console.log('📊 Database operations disabled, skipping folder creation');
+      return;
     }
 
-    console.log(`✅ System folders ensured in cache`);
+    try {
+      const userId = this.ensureUserId();
+
+      for (const folder of folderMappings) {
+        try {
+          // Check if folder exists
+          const { data: existingFolder } = await supabase
+            .from('email_folders')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('graph_folder_id', folder.graphId)
+            .single();
+
+          if (!existingFolder) {
+            // Create folder
+            const { error } = await supabase
+              .from('email_folders')
+              .insert({
+                user_id: userId,
+                graph_folder_id: folder.graphId,
+                display_name: folder.displayName,
+                folder_type: folder.folderType,
+                is_system_folder: this.isSystemFolder(folder.displayName),
+                unread_count: 0,
+                total_count: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                last_synced_at: new Date().toISOString()
+              });
+
+            if (error) {
+              console.error(`❌ Failed to create folder ${folder.displayName}:`, error);
+              // Don't throw, continue with other folders
+            } else {
+              console.log(`✅ Created folder: ${folder.displayName}`);
+            }
+          }
+        } catch (error) {
+          console.error(`❌ Error processing folder ${folder.displayName}:`, error);
+          // Continue with other folders
+        }
+      }
+    } catch (error) {
+      console.error('❌ Failed to ensure folders exist:', error);
+    }
   }
 
   // ===== EMAIL OPERATIONS =====
@@ -394,59 +440,205 @@ export class EmailCacheService {
   // ===== SYNC STATUS OPERATIONS =====
 
   async getSyncStatus(): Promise<SyncStatus | null> {
-    const userId = this.ensureUserId();
-
-    const { data, error } = await supabase
-      .from('email_sync_status')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error) {
-      console.error('Error fetching sync status:', error);
+    if (this.disableDatabaseOperations) {
+      console.log('📊 Database operations disabled, returning null sync status');
       return null;
     }
 
-    return data;
+    try {
+      const userId = this.ensureUserId();
+
+      const { data, error } = await supabase
+        .from('email_sync_status')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No sync status found, create one
+          console.log('📊 No sync status found, creating default...');
+          return await this.createDefaultSyncStatus();
+        }
+        
+        console.error('❌ Error fetching sync status. Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: error
+        });
+        
+        // If it's a table doesn't exist error, disable database operations
+        if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          console.warn('⚠️ email_sync_status table does not exist, disabling database operations');
+          this.disableDatabaseOperations = true;
+        }
+        
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to get sync status. Caught error:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
+      
+      // Disable database operations on any error
+      this.disableDatabaseOperations = true;
+      return null;
+    }
+  }
+
+  private async createDefaultSyncStatus(): Promise<SyncStatus | null> {
+    if (this.disableDatabaseOperations) return null;
+
+    try {
+      const userId = this.ensureUserId();
+      const now = new Date().toISOString();
+
+      const defaultStatus = {
+        user_id: userId,
+        last_full_sync_at: null,
+        last_incremental_sync_at: null,
+        next_sync_due_at: now,
+        sync_enabled: false, // Disabled by default until tables are ready
+        sync_interval_minutes: 15,
+        max_emails_per_folder: 100,
+        total_emails_cached: 0,
+        total_folders_cached: 0,
+        last_sync_duration_ms: null,
+        last_sync_error: null,
+        created_at: now,
+        updated_at: now
+      };
+
+      console.log('📊 Creating default sync status for user:', userId);
+      
+      const { data, error } = await supabase
+        .from('email_sync_status')
+        .insert(defaultStatus)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Failed to create default sync status. Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: error
+        });
+        
+        // If it's a table doesn't exist error, disable database operations
+        if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          console.warn('⚠️ email_sync_status table does not exist, disabling database operations');
+          this.disableDatabaseOperations = true;
+        }
+        
+        return null;
+      }
+
+      console.log('✅ Created default sync status');
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to create default sync status. Caught error:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
+      
+      // Disable database operations on any error
+      this.disableDatabaseOperations = true;
+      return null;
+    }
+  }
+
+  private async initializeSyncStatus(): Promise<void> {
+    if (this.disableDatabaseOperations) {
+      console.log('📊 Database operations disabled, skipping sync status initialization');
+      return;
+    }
+
+    try {
+      console.log('📊 Initializing sync status...');
+      const existingStatus = await this.getSyncStatus();
+      if (!existingStatus) {
+        console.log('📊 No existing sync status found, creating default...');
+        await this.createDefaultSyncStatus();
+      } else {
+        console.log('📊 Existing sync status found');
+      }
+    } catch (error) {
+      console.error('❌ Failed to initialize sync status:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error: error
+      });
+      // Don't disable database operations here since getSyncStatus already handles that
+    }
   }
 
   async updateSyncStatus(updates: Partial<SyncStatus>): Promise<void> {
-    const userId = this.ensureUserId();
+    if (this.disableDatabaseOperations) {
+      console.log('📊 Database operations disabled, skipping sync status update');
+      return;
+    }
 
-    const { error } = await supabase
-      .from('email_sync_status')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId);
+    try {
+      const userId = this.ensureUserId();
 
-    if (error) {
-      console.error('Error updating sync status:', error);
-      throw error;
+      const { error } = await supabase
+        .from('email_sync_status')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('❌ Error updating sync status:', error);
+        return; // Don't throw, just log and continue
+      }
+    } catch (error) {
+      console.error('❌ Failed to update sync status:', error);
     }
   }
 
   async isSyncDue(): Promise<boolean> {
-    const status = await this.getSyncStatus();
-    if (!status || !status.sync_enabled) return false;
+    if (this.disableDatabaseOperations) return false;
 
-    const now = new Date();
-    const nextSyncDue = status.next_sync_due_at ? new Date(status.next_sync_due_at) : now;
-    
-    return now >= nextSyncDue;
+    try {
+      const status = await this.getSyncStatus();
+      if (!status || !status.sync_enabled) return false;
+
+      const now = new Date();
+      const nextSyncDue = status.next_sync_due_at ? new Date(status.next_sync_due_at) : now;
+      
+      return now >= nextSyncDue;
+    } catch (error) {
+      console.error('❌ Failed to check if sync is due:', error);
+      return false;
+    }
   }
 
   async markSyncComplete(duration: number, error?: string): Promise<void> {
-    const now = new Date();
-    const nextSync = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
+    if (this.disableDatabaseOperations) return;
 
-    await this.updateSyncStatus({
-      last_incremental_sync_at: now.toISOString(),
-      next_sync_due_at: nextSync.toISOString(),
-      last_sync_duration_ms: duration,
-      last_sync_error: error || null
-    });
+    try {
+      const now = new Date();
+      const nextSync = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
+
+      await this.updateSyncStatus({
+        last_incremental_sync_at: now.toISOString(),
+        next_sync_due_at: nextSync.toISOString(),
+        last_sync_duration_ms: duration,
+        last_sync_error: error || null
+      });
+    } catch (error) {
+      console.error('❌ Failed to mark sync complete:', error);
+    }
   }
 
   // ===== SEARCH AND FILTER =====
@@ -644,26 +836,49 @@ export class EmailCacheService {
     lastSync: string | null;
     cacheSize: string;
   }> {
-    const userId = this.ensureUserId();
+    if (this.disableDatabaseOperations) {
+      return {
+        totalEmails: 0,
+        totalFolders: 0,
+        lastSync: null,
+        cacheSize: '0 Bytes'
+      };
+    }
 
-    const [emailCount, folderCount, syncStatus] = await Promise.all([
-      supabase
-        .from('emails')
-        .select('id', { count: 'exact' })
-        .eq('user_id', userId),
-      supabase
-        .from('email_folders')
-        .select('id', { count: 'exact' })
-        .eq('user_id', userId),
-      this.getSyncStatus()
-    ]);
+    try {
+      const userId = this.ensureUserId();
 
-    return {
-      totalEmails: emailCount.count || 0,
-      totalFolders: folderCount.count || 0,
-      lastSync: syncStatus?.last_incremental_sync_at || null,
-      cacheSize: this.formatBytes((emailCount.count || 0) * 2048) // Rough estimate
-    };
+      const [emailsResult, foldersResult, syncStatusResult] = await Promise.allSettled([
+        supabase
+          .from('emails')
+          .select('id', { count: 'exact' })
+          .eq('user_id', userId),
+        supabase
+          .from('email_folders')
+          .select('id', { count: 'exact' })
+          .eq('user_id', userId),
+        this.getSyncStatus()
+      ]);
+
+      const totalEmails = emailsResult.status === 'fulfilled' ? emailsResult.value.count || 0 : 0;
+      const totalFolders = foldersResult.status === 'fulfilled' ? foldersResult.value.count || 0 : 0;
+      const syncStatus = syncStatusResult.status === 'fulfilled' ? syncStatusResult.value : null;
+
+      return {
+        totalEmails,
+        totalFolders,
+        lastSync: syncStatus?.last_incremental_sync_at || null,
+        cacheSize: this.formatBytes((totalEmails * 2048) + (totalFolders * 512)) // Rough estimate
+      };
+    } catch (error) {
+      console.error('❌ Failed to get cache stats:', error);
+      return {
+        totalEmails: 0,
+        totalFolders: 0,
+        lastSync: null,
+        cacheSize: '0 Bytes'
+      };
+    }
   }
 
   private formatBytes(bytes: number): string {

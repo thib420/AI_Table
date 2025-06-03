@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Email } from './useMailbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star, Paperclip, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmailContextMenu } from './EmailContextMenu';
+import { useCustomer360Prefetch } from '@/modules/crm/hooks/useCustomer360Cache';
 
 interface MailboxListProps {
   emails: Email[];
@@ -24,11 +25,35 @@ export function MailboxList({
   onMarkAsRead, 
   onMarkAsUnread 
 }: MailboxListProps) {
+  const { prefetchProfiles } = useCustomer360Prefetch();
   const [contextMenu, setContextMenu] = useState<{
     email: Email;
     position: { x: number; y: number };
     isOpen: boolean;
   } | null>(null);
+
+  // Prefetch customer profiles for visible emails
+  useEffect(() => {
+    if (emails.length > 0) {
+      // Extract unique sender emails from the current email list
+      const senderEmails = [...new Set(
+        emails
+          .map(email => email.senderEmail || email.sender)
+          .filter(email => email && email.includes('@'))
+      )];
+
+      if (senderEmails.length > 0) {
+        console.log(`🚀 Prefetching ${senderEmails.length} customer profiles for mailbox view`);
+        
+        // Debounce prefetching to avoid excessive API calls
+        const timeoutId = setTimeout(() => {
+          prefetchProfiles(senderEmails.slice(0, 10)); // Limit to first 10 emails to avoid overwhelming
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [emails, prefetchProfiles]);
 
   const handleStarClick = (e: React.MouseEvent, email: Email) => {
     e.stopPropagation(); // Prevent email selection
