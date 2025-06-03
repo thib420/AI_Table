@@ -33,7 +33,7 @@ export class Customer360Service {
 
       // Get or create contact
       console.log(`👤 Finding or creating contact for ${email}`);
-      let contact = await this.findOrCreateContact(email);
+      const contact = await this.findOrCreateContact(email);
       if (!contact) {
         console.error(`❌ Failed to find or create contact for ${email}`);
         return null;

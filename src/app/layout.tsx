@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/common/theme-provider";
@@ -76,11 +76,6 @@ export const metadata: Metadata = {
     images: ["/og-image.png"],
     creator: "@converr_ai",
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
   verification: {
     google: "your-google-verification-code",
     // Add other verification codes as needed
@@ -89,6 +84,12 @@ export const metadata: Metadata = {
     canonical: "https://converr.ai",
   },
   category: "Technology",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

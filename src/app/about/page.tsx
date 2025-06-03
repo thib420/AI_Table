@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Link from 'next/link';
 import { generateSEOMetadata } from '@/shared/utils/seo';
 
 export const metadata: Metadata = generateSEOMetadata({
@@ -97,12 +98,12 @@ export default function AboutPage() {
           <p className="text-lg text-gray-600 mb-8">
             Join the companies already transforming their professional networking with Converr.
           </p>
-          <a 
+          <Link 
             href="/"
             className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-slate-800 to-blue-600 text-white font-medium rounded-lg hover:from-slate-900 hover:to-blue-700 transition-colors"
           >
             Start Your Free Trial
-          </a>
+          </Link>
         </section>
       </div>
     </main>

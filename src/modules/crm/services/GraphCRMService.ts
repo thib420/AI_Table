@@ -15,7 +15,7 @@ export class GraphCRMService {
       console.log('🔍 Fetching contacts sequentially to avoid rate limits...');
       
       // Make requests sequentially instead of concurrently to avoid rate limits
-      let allCRMContacts: CRMContact[] = [];
+      const allCRMContacts: CRMContact[] = [];
       
       // First, get Graph contacts (most important)
       try {
@@ -303,7 +303,7 @@ export class GraphCRMService {
         })
       ]);
 
-      let allCRMContacts: CRMContact[] = [];
+      const allCRMContacts: CRMContact[] = [];
 
       if (graphContacts.status === 'fulfilled') {
         console.log(`✅ Graph contacts search successful: ${graphContacts.value.length} results`);
@@ -344,7 +344,7 @@ export class GraphCRMService {
         withRetry(() => graphServiceManager.people?.getPeopleByCompany(companyName) || Promise.resolve([]))
       ]);
 
-      let allCRMContacts: CRMContact[] = [];
+      const allCRMContacts: CRMContact[] = [];
 
       if (graphContacts.status === 'fulfilled') {
         const crmContacts = graphDataTransformers.contactsToCRM(graphContacts.value);
