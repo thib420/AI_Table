@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Separator } from '@/components/ui/separator';
 import { graphCRMService } from '../services/GraphCRMService';
 import { Company } from '../types';
+import { crmCache } from '../services/crmCache';
 import { getStatusColor } from '../utils/helpers';
 
 export function CompaniesView() {
@@ -22,14 +23,47 @@ export function CompaniesView() {
 
   React.useEffect(() => {
     const loadCompanies = async () => {
+      // **OPTIMIZATION: Check in-memory cache first**
+      const cachedCompanies = crmCache.getCompanies();
+      if (cachedCompanies && cachedCompanies.length > 0) {
+        console.log('⚡ Using CRM companies cache - instant load!');
+        setCompanies(cachedCompanies);
+        setLoading(false);
+        
+        // Load fresh data in background
+        console.log('🔄 Starting background sync for companies...');
+        loadCompaniesInBackground();
+        return;
+      }
+
+      // No cache available, show loading and load fresh data
       try {
         setLoading(true);
+        console.log('📥 No companies cache available, loading fresh data...');
         const companiesData = await graphCRMService.getCompanies();
         setCompanies(companiesData);
+        
+        // Update cache with fresh data
+        crmCache.setCompanies(companiesData);
       } catch (error) {
         console.error('Error loading companies:', error);
       } finally {
         setLoading(false);
+      }
+    };
+
+    const loadCompaniesInBackground = async () => {
+      try {
+        console.log('🔄 Background companies sync started...');
+        const companiesData = await graphCRMService.getCompanies();
+        
+        // Update cache and state with fresh data
+        crmCache.setCompanies(companiesData);
+        setCompanies(companiesData);
+        
+        console.log('✅ Background companies sync completed');
+      } catch (error) {
+        console.error('❌ Background companies sync failed:', error);
       }
     };
 

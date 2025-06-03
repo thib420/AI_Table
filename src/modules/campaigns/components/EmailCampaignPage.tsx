@@ -272,26 +272,26 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {mockTemplates.map((template) => (
           <div key={template.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-2xl">
-                  {template.thumbnail}
-                </div>
-                <div>
-                  <h3 className="font-semibold">{template.name}</h3>
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-2xl">
+                    {template.thumbnail}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{template.name}</h3>
                   <span className="text-xs border rounded px-2 py-1">{template.type}</span>
                 </div>
               </div>
-              {template.isActive && (
+                {template.isActive && (
                 <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">Active</span>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">{template.description}</p>
-            <div className="flex space-x-2">
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">{template.description}</p>
+              <div className="flex space-x-2">
               <Button variant="outline" size="sm" className="flex-1">Preview</Button>
               <Button size="sm" className="flex-1">Use Template</Button>
             </div>
-          </div>
+              </div>
         ))}
       </div>
     </div>
@@ -307,8 +307,8 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
         <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">Analytics Dashboard</h3>
         <p className="text-muted-foreground">Analytics components coming soon...</p>
-      </div>
-    </div>
+              </div>
+              </div>
   );
 
   const renderSequenceBuilder = () => (
@@ -317,12 +317,12 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
         <div>
           <h2 className="text-2xl font-bold">Email Sequence Builder</h2>
           <p className="text-muted-foreground">Create and manage automated email sequences</p>
-        </div>
+              </div>
         <Button onClick={() => router.push('/campaigns/sequence-builder')}>
           <Zap className="h-4 w-4 mr-2" />
           Create New Sequence
         </Button>
-      </div>
+              </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Quick Actions */}
@@ -342,7 +342,7 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
           <CardContent className="p-6 text-center">
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-2xl mb-4 mx-auto">
               🚀
-            </div>
+                  </div>
             <h3 className="font-semibold mb-2">Product Launch</h3>
             <p className="text-sm text-muted-foreground">Build excitement with a multi-email product launch</p>
           </CardContent>
@@ -361,20 +361,20 @@ export function EmailCampaignPage({ onCustomerView }: EmailCampaignPageProps = {
       </div>
 
       {/* Existing Sequences (placeholder) */}
-      <div className="space-y-4">
+          <div className="space-y-4">
         <h3 className="text-lg font-semibold">Recent Sequences</h3>
         <div className="text-center py-8 border rounded-lg bg-muted/30">
           <Zap className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
           <p className="text-muted-foreground">No sequences created yet</p>
-          <Button 
-            variant="outline" 
+                  <Button 
+                    variant="outline" 
             className="mt-2"
             onClick={() => router.push('/campaigns/sequence-builder')}
-          >
+                  >
             Create Your First Sequence
-          </Button>
-        </div>
-      </div>
+                  </Button>
+                </div>
+              </div>
     </div>
   );
 

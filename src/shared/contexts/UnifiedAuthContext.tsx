@@ -49,10 +49,10 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     const getInitialSession = async () => {
       console.log('🔍 Getting initial session...');
       try {
-        // Set a race condition with timeout to prevent hanging
+        // Set a race condition with timeout to prevent hanging  
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Supabase session timeout')), 3000)
+          setTimeout(() => reject(new Error('Supabase session timeout')), 1000) // Reduced from 3000ms to 1000ms
         );
 
         const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
@@ -81,7 +81,7 @@ export const UnifiedAuthProvider: React.FC<UnifiedAuthProviderProps> = ({ childr
     const backupTimeout = setTimeout(() => {
       console.log('⏰ Backup timeout: forcing loading to false');
       setIsLoading(false);
-    }, 5000);
+    }, 2000); // Reduced from 5000ms to 2000ms
 
     getInitialSession().finally(() => {
       clearTimeout(backupTimeout);

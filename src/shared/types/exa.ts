@@ -6,6 +6,7 @@ export interface ExaResultItem {
   author?: string;        // Marked as optional
   score: number;
   text: string; // Consider if you want to display the full text or a snippet
+  image?: string; // Profile image URL from LinkedIn (when available)
   // Add any other fields you might need from the 'results' objects
 }
 

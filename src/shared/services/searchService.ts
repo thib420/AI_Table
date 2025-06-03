@@ -36,8 +36,8 @@ export class SearchService {
   }
 
   static processLinkedInData(result: ExaResultItem): EnrichedExaResultItem {
-    // Generate profile picture URL from name
-    const profilePicture = SearchService.generateProfilePictureUrl(result.author || 'Unknown');
+    // Use the image from Exa API if available, otherwise generate profile picture URL from name
+    const profilePicture = result.image || SearchService.generateProfilePictureUrl(result.author || 'Unknown');
     
     // Initial processing - will be enhanced by Gemini
     return {
@@ -45,7 +45,7 @@ export class SearchService {
       cleanTitle: 'Processing...', // Will be filled by Gemini
       company: 'Processing...', // Will be filled by Gemini
       cleanDescription: 'Processing...', // Will be filled by Gemini
-      profilePicture, // Profile picture URL
+      profilePicture, // Profile picture URL (prefer Exa API image)
       cleanPosition: result.title || 'N/A', // Fallback
       extractedCompany: 'N/A' // Fallback
     };
@@ -168,7 +168,7 @@ Return this exact JSON format:
             cleanTitle: enhancement.cleanTitle || 'N/A',
             company: enhancement.company || 'N/A',
             cleanDescription: enhancement.cleanDescription || 'No description available',
-            // Keep the profile picture from initial processing
+            // Keep the profile picture from initial processing (prefers Exa image)
             profilePicture: result.profilePicture,
             // Keep legacy fields for backward compatibility
             cleanPosition: enhancement.cleanTitle || 'N/A',
@@ -197,7 +197,7 @@ Return this exact JSON format:
         cleanTitle: result.title || 'N/A',
         company: 'N/A',
         cleanDescription: 'Processing failed',
-        profilePicture: result.profilePicture,
+        profilePicture: result.profilePicture, // Already processed to prefer Exa image
         cleanPosition: result.title || 'N/A',
         extractedCompany: 'N/A'
       }));

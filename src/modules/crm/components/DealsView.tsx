@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { graphCRMService } from '../services/GraphCRMService';
 import { Deal } from '../types';
 import { getStageColor } from '../utils/helpers';
+import { crmCache } from '../services/crmCache';
 
 export function DealsView() {
   const [deals, setDeals] = React.useState<Deal[]>([]);
@@ -21,14 +22,47 @@ export function DealsView() {
 
   React.useEffect(() => {
     const loadDeals = async () => {
+      // **OPTIMIZATION: Check in-memory cache first**
+      const cachedDeals = crmCache.getDeals();
+      if (cachedDeals && cachedDeals.length > 0) {
+        console.log('⚡ Using CRM deals cache - instant load!');
+        setDeals(cachedDeals);
+        setLoading(false);
+        
+        // Load fresh data in background
+        console.log('🔄 Starting background sync for deals...');
+        loadDealsInBackground();
+        return;
+      }
+
+      // No cache available, show loading and load fresh data
       try {
         setLoading(true);
+        console.log('📥 No deals cache available, loading fresh data...');
         const dealsData = await graphCRMService.getDeals();
         setDeals(dealsData);
+        
+        // Update cache with fresh data
+        crmCache.setDeals(dealsData);
       } catch (error) {
         console.error('Error loading deals:', error);
       } finally {
         setLoading(false);
+      }
+    };
+
+    const loadDealsInBackground = async () => {
+      try {
+        console.log('🔄 Background deals sync started...');
+        const dealsData = await graphCRMService.getDeals();
+        
+        // Update cache and state with fresh data
+        crmCache.setDeals(dealsData);
+        setDeals(dealsData);
+        
+        console.log('✅ Background deals sync completed');
+      } catch (error) {
+        console.error('❌ Background deals sync failed:', error);
       }
     };
 

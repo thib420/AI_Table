@@ -15,6 +15,7 @@ import { ContactsView } from './ContactsView';
 import { DealsView } from './DealsView';
 import { CompaniesView } from './CompaniesView';
 import { CRMView, CRMPageProps } from '../types';
+import { crmCache } from '../services/crmCache';
 
 export function CRMPage({ selectedCustomerId, onCustomerBack }: CRMPageProps = {}) {
   const [currentView, setCurrentView] = useState<CRMView>('dashboard');
@@ -68,6 +69,14 @@ export function CRMPage({ selectedCustomerId, onCustomerBack }: CRMPageProps = {
       onCustomerBack();
     }
   };
+
+  // Clear CRM cache when component unmounts (optional - only if needed)
+  useEffect(() => {
+    return () => {
+      // Uncomment if you want to clear cache on unmount
+      // crmCache.clear();
+    };
+  }, []);
 
   const renderView = () => {
     console.log('🏢 CRMPage: renderView called with currentView:', currentView, 'customerEmail:', customerEmail);

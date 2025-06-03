@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { useMailbox, Email } from './MailboxPage/useMailbox';
 import { MailboxSidebar } from './MailboxPage/MailboxSidebar';
 import { MailboxList } from './MailboxPage/MailboxList';
@@ -11,13 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RefreshCw, Wifi, WifiOff, Mail, LogOut, AlertCircle, Settings } from 'lucide-react';
+import { CacheStatusBadge } from './CacheStatusBadge';
 
 interface MailboxPageProps {
   onCustomerView?: (customerId: string) => void;
   onNavigateToCRM?: () => void;
 }
 
-export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProps = {}) {
+const MailboxPageComponent = function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProps = {}) {
   const { isSignedIn, isLoading: authLoading, signIn, signOut, userProfile } = useMicrosoftAuth();
   const [showSetupHelp, setShowSetupHelp] = useState(false);
   const [useDemoMode, setUseDemoMode] = useState(false);
@@ -32,13 +33,16 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
     currentView,
     setCurrentView,
     isLoading,
+    isSyncingInBackground,
     error,
     isConnected,
+    isCacheEnabled,
     refreshEmails,
     markAsRead,
     markAsUnread,
     toggleStar,
     deleteEmail,
+    loadFromCache,
   } = useMailbox();
 
   // Helper for viewing CRM - navigates to CRM module
@@ -206,6 +210,12 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
                 Demo Mode
               </Badge>
             )}
+            <CacheStatusBadge 
+              isCacheEnabled={isCacheEnabled}
+              onClearCache={loadFromCache}
+              onRefreshCache={refreshEmails}
+              isSyncing={isSyncingInBackground}
+            />
             {userProfile && (
               <span className="text-sm text-muted-foreground">
                 {userProfile.displayName || userProfile.mail}
@@ -305,4 +315,7 @@ export function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProp
       )}
     </div>
   );
-} 
+};
+
+// Memoize the component to prevent unnecessary re-renders during navigation
+export const MailboxPage = memo(MailboxPageComponent); 

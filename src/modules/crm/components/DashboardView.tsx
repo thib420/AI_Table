@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { graphCRMService } from '../services/GraphCRMService';
 import { Contact, Deal, Company } from '../types';
+import { crmCache } from '../services/crmCache';
 import { getStageColor } from '../utils/helpers';
 
 export function DashboardView() {
@@ -24,8 +25,25 @@ export function DashboardView() {
 
   React.useEffect(() => {
     const loadData = async () => {
+      // **OPTIMIZATION: Check in-memory cache first**
+      const cachedData = crmCache.get();
+      if (cachedData && (cachedData.contacts.length > 0 || cachedData.deals.length > 0 || cachedData.companies.length > 0)) {
+        console.log('⚡ Using CRM dashboard cache - instant load!');
+        setContacts(cachedData.contacts);
+        setDeals(cachedData.deals);
+        setCompanies(cachedData.companies);
+        setLoading(false);
+        
+        // Load fresh data in background
+        console.log('🔄 Starting background sync for dashboard...');
+        loadDataInBackground();
+        return;
+      }
+
+      // No cache available, show loading and load fresh data
       try {
         setLoading(true);
+        console.log('📥 No CRM cache available, loading fresh data...');
         const [contactsData, dealsData, companiesData] = await Promise.all([
           graphCRMService.getAllContacts(),
           graphCRMService.getDeals(),
@@ -35,10 +53,34 @@ export function DashboardView() {
         setContacts(contactsData);
         setDeals(dealsData);
         setCompanies(companiesData);
+        
+        // Update cache with fresh data
+        crmCache.setAll(contactsData, dealsData, companiesData);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
         setLoading(false);
+      }
+    };
+
+    const loadDataInBackground = async () => {
+      try {
+        console.log('🔄 Background dashboard sync started...');
+        const [contactsData, dealsData, companiesData] = await Promise.all([
+          graphCRMService.getAllContacts(),
+          graphCRMService.getDeals(),
+          graphCRMService.getCompanies()
+        ]);
+        
+        // Update cache and state with fresh data
+        crmCache.setAll(contactsData, dealsData, companiesData);
+        setContacts(contactsData);
+        setDeals(dealsData);
+        setCompanies(companiesData);
+        
+        console.log('✅ Background dashboard sync completed');
+      } catch (error) {
+        console.error('❌ Background dashboard sync failed:', error);
       }
     };
 

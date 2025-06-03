@@ -438,7 +438,7 @@ export function BulkContactCreationDialog({
 
                     <Avatar className="h-10 w-10">
                       <AvatarImage 
-                        src={generateProfilePicture(contactData.name)} 
+                        src={result.image || generateProfilePicture(contactData.name)} 
                         alt={contactData.name} 
                       />
                       <AvatarFallback>

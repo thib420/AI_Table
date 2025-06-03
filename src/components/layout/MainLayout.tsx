@@ -44,7 +44,8 @@ const navigationItems = [
     description: 'Lead Prospection',
     color: 'text-blue-600 dark:text-blue-400',
     bgColor: 'bg-blue-50 dark:bg-blue-950',
-    borderColor: 'border-blue-200 dark:border-blue-800'
+    borderColor: 'border-blue-200 dark:border-blue-800',
+    activeBg: 'bg-blue-600 dark:bg-blue-600'
   },
   {
     id: 'mailbox' as const,
@@ -53,7 +54,8 @@ const navigationItems = [
     description: 'Outlook Integration',
     color: 'text-orange-600 dark:text-orange-400',
     bgColor: 'bg-orange-50 dark:bg-orange-950',
-    borderColor: 'border-orange-200 dark:border-orange-800'
+    borderColor: 'border-orange-200 dark:border-orange-800',
+    activeBg: 'bg-orange-600 dark:bg-orange-600'
   },
   {
     id: 'crm' as const,
@@ -62,7 +64,8 @@ const navigationItems = [
     description: 'Customer Management',
     color: 'text-green-600 dark:text-green-400',
     bgColor: 'bg-green-50 dark:bg-green-950',
-    borderColor: 'border-green-200 dark:border-green-800'
+    borderColor: 'border-green-200 dark:border-green-800',
+    activeBg: 'bg-green-600 dark:bg-green-600'
   },
   {
     id: 'email-campaign' as const,
@@ -71,16 +74,13 @@ const navigationItems = [
     description: 'Marketing Automation',
     color: 'text-purple-600 dark:text-purple-400',
     bgColor: 'bg-purple-50 dark:bg-purple-950',
-    borderColor: 'border-purple-200 dark:border-purple-800'
+    borderColor: 'border-purple-200 dark:border-purple-800',
+    activeBg: 'bg-purple-600 dark:bg-purple-600'
   }
 ];
 
-
-
 export function MainLayout({ user, children, currentModule, onModuleChange, onLogout, onCustomerView, microsoftAccount, isMicrosoftSignedIn, hasAnyAuth }: MainLayoutProps) {
   const { theme, setTheme } = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar
-  const [sidebarExpanded, setSidebarExpanded] = useState(false); // Desktop sidebar expansion
 
   const getUserInitials = (user: User) => {
     // Try to get name from various metadata fields
@@ -192,7 +192,6 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
   };
 
   const userInfo = getCurrentUserInfo();
-
   const currentItem = navigationItems.find(item => item.id === currentModule);
 
   return (
@@ -200,15 +199,6 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 flex-shrink-0">
         <div className="flex h-16 items-center px-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="mr-4 lg:hidden"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -222,8 +212,6 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
               </div>
             </div>
           </div>
-
-
 
           <div className="ml-auto flex items-center space-x-4">
             {/* Current Module Indicator */}
@@ -304,94 +292,48 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0">
-        {/* Sidebar Navigation */}
-        <aside className={`
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          fixed inset-y-0 left-0 z-40 bg-background border-r transition-all duration-200 ease-in-out
-          lg:relative lg:translate-x-0 top-16 lg:top-0 lg:flex-shrink-0
-          ${sidebarExpanded ? 'w-72' : 'w-16'}
-        `}>
-          <div className="flex h-full flex-col">
-            {/* Toggle Button */}
-            <div className={`flex ${sidebarExpanded ? 'justify-end' : 'justify-center'} p-2 border-b`}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarExpanded(!sidebarExpanded)}
-                className="h-8 w-8"
-              >
-                {sidebarExpanded ? (
-                  <ChevronLeft className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+      {/* Main Content */}
+      <main className="flex-1 overflow-hidden">
+        {children}
+      </main>
 
-            <div className={`flex-1 overflow-y-auto ${sidebarExpanded ? 'p-6' : 'p-2'} space-y-4`}>
-              <div className="space-y-2">
-                {sidebarExpanded && (
-                  <h3 className="text-sm font-medium text-muted-foreground">Business Modules</h3>
-                )}
-                <div className="space-y-1">
-                  {navigationItems.map((item) => {
-                    const isActive = currentModule === item.id;
-                    return (
-                      <Button
-                        key={item.id}
-                        variant={isActive ? "default" : "ghost"}
-                        className={`w-full ${sidebarExpanded ? 'justify-start h-12' : 'justify-center h-10'} ${
-                          isActive 
-                            ? `${item.bgColor} ${item.color} border ${item.borderColor} hover:${item.bgColor}` 
-                            : 'hover:bg-muted/50'
-                        }`}
-                        onClick={() => {
-                          onModuleChange(item.id);
-                          setSidebarOpen(false);
-                        }}
-                        title={!sidebarExpanded ? item.label : undefined}
-                      >
-                        <item.icon className={`h-5 w-5 ${sidebarExpanded ? 'mr-3' : ''} ${isActive ? item.color : 'text-muted-foreground'}`} />
-                        {sidebarExpanded && (
-                          <>
-                            <div className="flex-1 text-left">
-                              <div className={`font-medium ${isActive ? item.color : ''}`}>
-                                {item.label}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {item.description}
-                              </div>
-                            </div>
-                            {item.id === 'crm' && (
-                              <Badge variant="secondary" className="ml-auto">
-                                New
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                      </Button>
-                    );
-                  })}
+      {/* Bottom Floating Navigation Island */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="bg-background/95 backdrop-blur-md border rounded-2xl shadow-2xl p-2">
+          <div className="flex items-center space-x-1">
+            {navigationItems.map((item) => {
+              const isActive = currentModule === item.id;
+              return (
+                <div key={item.id} className="relative group">
+                  <Button
+                    variant={isActive ? "default" : "ghost"}
+                    size="icon"
+                    className={`h-12 w-12 rounded-xl transition-all duration-200 ${
+                      isActive 
+                        ? `${item.activeBg} text-white hover:${item.activeBg}` 
+                        : 'hover:bg-muted/80 text-muted-foreground hover:text-foreground'
+                    }`}
+                    onClick={() => onModuleChange(item.id)}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {item.id === 'crm' && !isActive && (
+                      <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-background" />
+                    )}
+                  </Button>
+                  
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                    <div className="bg-foreground text-background text-xs rounded-lg px-2 py-1 whitespace-nowrap">
+                      {item.label}
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-hidden min-h-0">
-          {children}
-        </main>
+        </div>
       </div>
-
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-30 bg-background/80 backdrop-blur-sm lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 } 

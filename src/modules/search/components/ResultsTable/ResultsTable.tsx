@@ -330,7 +330,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                         ) : column.accessorKey === 'author' ? (
                           <div className="flex items-center space-x-3">
                             <img
-                              src={result.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(String(value))}&size=40&background=6366f1&color=fff&bold=true&format=png`}
+                              src={result.image || result.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(String(value))}&size=40&background=6366f1&color=fff&bold=true&format=png`}
                               alt={`${String(value)} profile`}
                               className="w-8 h-8 rounded-full flex-shrink-0 bg-gray-100"
                               onError={(e) => {

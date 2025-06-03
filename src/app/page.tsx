@@ -4,12 +4,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUnifiedAuth } from '@/shared/contexts/UnifiedAuthContext';
 import { supabase } from '@/shared/lib/supabase/client';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { MainLayout } from '@/components/layout/MainLayout';
-import { CRMPage } from '@/modules/crm';
-import { MailboxPage } from '@/modules/mailbox';
-import { EmailCampaignPage } from '@/modules/campaigns';
 import { LandingPage } from '@/modules/landing';
+// Lazy load heavy components for faster initial load
+import dynamic from 'next/dynamic';
+
+const AppLayout = dynamic(() => import('@/components/layout/AppLayout').then(mod => ({ default: mod.AppLayout })), {
+  loading: () => <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div></div>
+});
+const MainLayout = dynamic(() => import('@/components/layout/MainLayout').then(mod => ({ default: mod.MainLayout })));
+const CRMPage = dynamic(() => import('@/modules/crm').then(mod => ({ default: mod.CRMPage })));
+const MailboxPage = dynamic(() => import('@/modules/mailbox').then(mod => ({ default: mod.MailboxPage })), {
+  loading: () => <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div></div>
+});
+const EmailCampaignPage = dynamic(() => import('@/modules/campaigns').then(mod => ({ default: mod.EmailCampaignPage })));
 import { useSearchHistory, SavedSearchItem } from '@/modules/search/components/SearchHistoryManager';
 import { ExaResultItem } from '@/shared/types/exa';
 import { useToast } from '@/components/ui/toast';
@@ -72,25 +79,36 @@ export default function AppPage() {
   const fetchSavedSearchesAndUpdate = useCallback(async () => {
     try {
       if (!user) {
-        // Load from localStorage for development mode
-        const localSearches = JSON.parse(localStorage.getItem('ai_table_saved_searches') || '[]');
-        setSavedSearches(localSearches);
+        // Load from localStorage for development mode (defer for faster loading)
+        setTimeout(() => {
+          const localSearches = JSON.parse(localStorage.getItem('ai_table_saved_searches') || '[]');
+          setSavedSearches(localSearches);
+        }, 100);
         return;
       }
       
-      // Load from database for authenticated users
-      const data = await fetchSavedSearches();
-      setSavedSearches(data);
+      // Load from database for authenticated users (defer for faster loading)
+      setTimeout(async () => {
+        try {
+          const data = await fetchSavedSearches();
+          setSavedSearches(data);
+        } catch (err) {
+          console.error("Error fetching saved searches:", err);
+          setSavedSearches([]);
+        }
+      }, 100);
     } catch (err) {
-      console.error("Error fetching saved searches:", err);
+      console.error("Error in fetchSavedSearchesAndUpdate:", err);
       setSavedSearches([]);
     }
   }, [user, fetchSavedSearches]);
 
   useEffect(() => {
-    // Always fetch saved searches (from DB or localStorage)
-    fetchSavedSearchesAndUpdate();
-  }, [user, fetchSavedSearchesAndUpdate]);
+    // Defer loading of saved searches for faster initial render
+    if (!authIsLoading) {
+      fetchSavedSearchesAndUpdate();
+    }
+  }, [user, authIsLoading, fetchSavedSearchesAndUpdate]);
 
   useEffect(() => {
     if (!authIsLoading && !user) {
@@ -323,19 +341,16 @@ export default function AppPage() {
     );
   }
 
-  // Loading state - add timeout protection
+  // Optimized loading state - faster timeout
   if (authIsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="text-xs text-blue-600 hover:text-blue-800 underline"
-          >
-            Click here if loading takes too long
-          </button>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Loading app...</p>
+          <div className="text-xs text-gray-400">
+            Initializing authentication and services
+          </div>
         </div>
       </div>
     );

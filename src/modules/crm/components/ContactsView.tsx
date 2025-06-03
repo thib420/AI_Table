@@ -40,6 +40,7 @@ import { graphCRMService } from '../services/GraphCRMService';
 import { Contact } from '../types';
 import { getStatusColor, generateProfilePicture } from '../utils/helpers';
 import { EditContactDialog } from './EditContactDialog';
+import { crmCache } from '../services/crmCache';
 
 interface ContactsViewProps {
   onContactView: (contactId: string) => void;
@@ -71,14 +72,47 @@ export function ContactsView({ onContactView }: ContactsViewProps) {
 
   React.useEffect(() => {
     const loadContacts = async () => {
+      // **OPTIMIZATION: Check in-memory cache first**
+      const cachedContacts = crmCache.getContacts();
+      if (cachedContacts && cachedContacts.length > 0) {
+        console.log('⚡ Using CRM contacts cache - instant load!');
+        setContacts(cachedContacts);
+        setLoading(false);
+        
+        // Load fresh data in background
+        console.log('🔄 Starting background sync for contacts...');
+        loadContactsInBackground();
+        return;
+      }
+
+      // No cache available, show loading and load fresh data
       try {
         setLoading(true);
+        console.log('📥 No contacts cache available, loading fresh data...');
         const contactsData = await graphCRMService.getAllContacts();
         setContacts(contactsData);
+        
+        // Update cache with fresh data
+        crmCache.setContacts(contactsData);
       } catch (error) {
         console.error('Error loading contacts:', error);
       } finally {
         setLoading(false);
+      }
+    };
+
+    const loadContactsInBackground = async () => {
+      try {
+        console.log('🔄 Background contacts sync started...');
+        const contactsData = await graphCRMService.getAllContacts();
+        
+        // Update cache and state with fresh data
+        crmCache.setContacts(contactsData);
+        setContacts(contactsData);
+        
+        console.log('✅ Background contacts sync completed');
+      } catch (error) {
+        console.error('❌ Background contacts sync failed:', error);
       }
     };
 

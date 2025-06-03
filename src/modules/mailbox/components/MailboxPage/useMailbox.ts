@@ -1,8 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Message, MailFolder } from '@microsoft/microsoft-graph-types';
 import { microsoftGraphService } from '../../services/microsoft-graph';
 import { useMicrosoftAuth } from '../../services/MicrosoftAuthContext';
 import { contactSyncService } from '../../services/ContactSyncService';
+import { emailCacheService } from '../../services/EmailCacheService';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { supabase } from '@/shared/lib/supabase/client';
+import { mailboxCache } from '../../services/mailboxCache';
+
 
 export interface MailboxFolder {
   id: string;
@@ -116,6 +121,9 @@ function convertGraphMessageToEmail(message: Message, folderType: string = 'inbo
 
 export function useMailbox() {
   const { isSignedIn, isLoading: authLoading } = useMicrosoftAuth();
+  const { user } = useAuth(); // Supabase user for caching
+  
+  // Use regular state instead of context for now
   const [emails, setEmails] = useState<Email[]>([]);
   const [allEmails, setAllEmails] = useState<Email[]>([]);
   const [folders, setFolders] = useState<MailboxFolder[]>([]);
@@ -123,16 +131,91 @@ export function useMailbox() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<string>('inbox');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncingInBackground, setIsSyncingInBackground] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cacheInitialized, setCacheInitialized] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  
+  // Local state for loading operations
+  const [isLoadingFromCache, setIsLoadingFromCache] = useState(false);
 
-  // Initialize with mock data or load real data
+  // Initialize cache when user is available or create anonymous user
+  useEffect(() => {
+    const initializeCache = async () => {
+      // If connected to Microsoft but no Supabase user, create anonymous user for caching
+      if (isSignedIn && !user && !cacheInitialized) {
+        try {
+          console.log('🔧 Creating anonymous Supabase user for email caching...');
+          const { data, error } = await supabase.auth.signInAnonymously();
+          if (error) {
+            console.error('Failed to create anonymous user:', error);
+            return;
+          }
+          console.log('✅ Anonymous user created for caching');
+          // The auth state change will trigger this effect again with the new user
+          return;
+        } catch (error) {
+          console.error('❌ Failed to create anonymous user:', error);
+        }
+      }
+
+      // Initialize cache with existing user
+      if (user && !cacheInitialized) {
+        try {
+          console.log('🔧 Initializing email cache for user:', user.id);
+          await emailCacheService.initialize(user.id);
+          setCacheInitialized(true);
+          console.log('✅ Email cache initialized');
+        } catch (error) {
+          console.error('❌ Failed to initialize email cache:', error);
+        }
+      }
+    };
+
+    initializeCache();
+  }, [user, cacheInitialized, isSignedIn]);
+
+  // Initialize with cached data first, then load real data - with skip logic
   useEffect(() => {
     const initializeData = async () => {
       if (authLoading) return;
+      
+      // **OPTIMIZATION: Check in-memory cache first**
+      const cachedData = mailboxCache.get();
+      if (cachedData && cachedData.emails.length > 0) {
+        console.log('⚡ Using in-memory cache - instant load!');
+        setAllEmails(cachedData.emails);
+        setFolders(cachedData.folders);
+        setIsDataLoaded(true);
+        
+        // If signed in, sync in background
+        if (isSignedIn) {
+          console.log('🔄 Starting background sync...');
+          syncDataInBackground();
+        }
+        return;
+      }
 
-      if (isSignedIn) {
-        await loadMailFolders();
-        await loadMicrosoftEmails();
+      // If we have Supabase cache, load it immediately for instant UI
+      if (user && cacheInitialized) {
+        await loadFromCache();
+        
+        // If we got data from cache and we're signed in, sync in background
+        if (isSignedIn) {
+          console.log('🔄 Starting background sync...');
+          syncDataInBackground();
+        }
+      } else if (isSignedIn) {
+        // No cache available, show loading and load fresh data
+        console.log('📥 No cache available, loading fresh data...');
+        setIsLoading(true);
+        try {
+          await loadMailFolders();
+          await loadMicrosoftEmails();
+          setIsDataLoaded(true);
+        } finally {
+          setIsLoading(false);
+        }
       } else {
         // Use mock data when not signed in
         setFolders(getDefaultFolders());
@@ -142,7 +225,10 @@ export function useMailbox() {
           displayTime: formatTimestamp(email.timestamp),
         }));
         setAllEmails(processedMockEmails);
-        setEmails(processedMockEmails);
+        setIsDataLoaded(true);
+        
+        // Update in-memory cache with mock data
+        mailboxCache.set(processedMockEmails, getDefaultFolders());
         
         // Sync mock contacts to CRM
         if (processedMockEmails.length > 0) {
@@ -155,7 +241,46 @@ export function useMailbox() {
     };
 
     initializeData();
-  }, [isSignedIn, authLoading]);
+  }, [isSignedIn, authLoading, user, cacheInitialized]);
+
+  // Load emails and folders from cache (instant loading)
+  const loadFromCache = useCallback(async () => {
+    if (!user || !cacheInitialized) return;
+
+    try {
+      setIsLoadingFromCache(true);
+      console.log('📦 Loading emails from cache...');
+
+      // Load folders from cache
+      const cachedFolders = await emailCacheService.getCachedFolders();
+      if (cachedFolders.length > 0) {
+        console.log(`📁 Loaded ${cachedFolders.length} folders from cache`);
+        setFolders(cachedFolders);
+      }
+
+      // Load emails from cache
+      const cachedEmails = await emailCacheService.getCachedEmails();
+      if (cachedEmails.length > 0) {
+        console.log(`📧 Loaded ${cachedEmails.length} emails from cache`);
+        setAllEmails(cachedEmails);
+        setIsDataLoaded(true);
+        
+        // Update in-memory cache from Supabase cache
+        mailboxCache.set(cachedEmails, folders);
+        
+        // Sync cached contacts to CRM in background
+        contactSyncService.syncContactsInBackground(cachedEmails).catch(error => {
+          console.error('❌ useMailbox: Cached contact sync failed:', error);
+        });
+      }
+
+      console.log('✅ Cache load complete');
+    } catch (error) {
+      console.error('❌ Failed to load from cache:', error);
+    } finally {
+      setIsLoadingFromCache(false);
+    }
+  }, [user, cacheInitialized]);
 
   // Get default system folders for demo mode
   const getDefaultFolders = (): MailboxFolder[] => [
@@ -175,6 +300,16 @@ export function useMailbox() {
       console.log('📁 Loading mail folders from Microsoft Graph...');
       const graphFolders = await microsoftGraphService.getMailFolders();
       console.log('📁 Raw Graph folders received:', graphFolders);
+      
+      // Cache the folders if user is available
+      if (user && cacheInitialized) {
+        try {
+          await emailCacheService.cacheFolders(graphFolders);
+          console.log('💾 Folders cached successfully');
+        } catch (error) {
+          console.error('⚠️ Failed to cache folders:', error);
+        }
+      }
       
       const systemFolders = getDefaultFolders();
       const customFolders: MailboxFolder[] = [];
@@ -224,12 +359,15 @@ export function useMailbox() {
       
       setFolders(allFolders);
       console.log(`✅ Loaded ${updatedSystemFolders.length} system folders and ${customFolders.length} custom folders`);
+      
+      // Update in-memory cache
+      mailboxCache.set(allEmails, allFolders);
     } catch (error) {
       console.error('❌ Failed to load mail folders:', error);
       // Fallback to default folders
       setFolders(getDefaultFolders());
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, user, cacheInitialized, allEmails]);
 
   // Helper function to check if a folder name is a system folder
   const isSystemFolderName = (folderName: string): boolean => {
@@ -253,7 +391,6 @@ export function useMailbox() {
   const loadMicrosoftEmails = useCallback(async () => {
     if (!isSignedIn) return;
 
-    setIsLoading(true);
     setError(null);
 
     try {
@@ -268,6 +405,19 @@ export function useMailbox() {
         { id: 'deletedItems', graphId: 'deleteditems', displayName: 'Deleted Items' },
       ];
 
+      // Ensure all folders exist in cache before loading emails
+      if (user && cacheInitialized) {
+        try {
+          await emailCacheService.ensureFoldersExist(systemFolderMappings.map(f => ({
+            graphId: f.graphId,
+            folderType: f.id,
+            displayName: f.displayName
+          })));
+        } catch (error) {
+          console.error('⚠️ Failed to ensure folders exist:', error);
+        }
+      }
+
       for (const folderMapping of systemFolderMappings) {
         try {
           console.log(`📂 Loading emails from ${folderMapping.displayName}...`);
@@ -277,6 +427,17 @@ export function useMailbox() {
           const graphIdToUse = actualFolder?.graphId || folderMapping.graphId;
           
           const messages = await microsoftGraphService.getEmails(graphIdToUse, 50);
+          
+          // Cache the emails if user is available (this will auto-create folder if needed)
+          if (user && cacheInitialized && messages.length > 0) {
+            try {
+              await emailCacheService.cacheEmails(messages, graphIdToUse, folderMapping.id);
+              console.log(`💾 Cached ${messages.length} emails from ${folderMapping.displayName}`);
+            } catch (error) {
+              console.error(`⚠️ Failed to cache emails from ${folderMapping.displayName}:`, error);
+            }
+          }
+          
           const folderEmails = messages.map(msg => 
             convertGraphMessageToEmail(msg, folderMapping.id, graphIdToUse)
           );
@@ -301,6 +462,17 @@ export function useMailbox() {
           console.log(`📂 Loading emails from custom folder: ${folder.displayName}...`);
           const graphIdToUse = folder.graphId || folder.id.replace('custom_', '');
           const messages = await microsoftGraphService.getEmails(graphIdToUse, 20);
+          
+          // Cache the emails if user is available
+          if (user && cacheInitialized && messages.length > 0) {
+            try {
+              await emailCacheService.cacheEmails(messages, graphIdToUse, 'custom');
+              console.log(`💾 Cached ${messages.length} emails from ${folder.displayName}`);
+            } catch (error) {
+              console.error(`⚠️ Failed to cache emails from ${folder.displayName}:`, error);
+            }
+          }
+          
           const folderEmails = messages.map(msg => 
             convertGraphMessageToEmail(msg, folder.id, graphIdToUse)
           );
@@ -323,6 +495,9 @@ export function useMailbox() {
       
       setAllEmails(deduplicatedEmails);
       console.log(`✅ Total unique emails loaded: ${deduplicatedEmails.length}`);
+      
+      // Update in-memory cache with fresh data
+      mailboxCache.set(deduplicatedEmails, folders);
       
       // Automatically sync contacts from emails to CRM in the background
       if (deduplicatedEmails.length > 0) {
@@ -357,10 +532,29 @@ export function useMailbox() {
           console.error('❌ useMailbox: Mock data contact sync failed:', error);
         });
       }
-    } finally {
-      setIsLoading(false);
     }
-  }, [isSignedIn, folders]);
+  }, [isSignedIn, folders, user, cacheInitialized]);
+
+  // Sync data in background without showing loading state
+  const syncDataInBackground = useCallback(async () => {
+    if (!isSignedIn) return;
+
+    try {
+      setIsSyncingInBackground(true);
+      console.log('🔄 Background sync started...');
+      
+      await Promise.all([
+        loadMailFolders(),
+        loadMicrosoftEmails()
+      ]);
+      
+      console.log('✅ Background sync completed');
+    } catch (error) {
+      console.error('❌ Background sync failed:', error);
+    } finally {
+      setIsSyncingInBackground(false);
+    }
+  }, [isSignedIn, loadMailFolders, loadMicrosoftEmails]);
 
   // Mark email as read in Microsoft Graph
   const markAsRead = useCallback(async (email: Email) => {
@@ -369,6 +563,15 @@ export function useMailbox() {
     try {
       await microsoftGraphService.markAsRead(email.graphMessage.id);
       
+      // Update cache
+      if (user && cacheInitialized) {
+        try {
+          await emailCacheService.updateEmailStatus(email.graphMessage.id, { is_read: true });
+        } catch (error) {
+          console.error('Failed to update cache:', error);
+        }
+      }
+      
       // Update local state
       setAllEmails(prev => prev.map(e => 
         e.id === email.id ? { ...e, isRead: true } : e
@@ -376,7 +579,7 @@ export function useMailbox() {
     } catch (error) {
       console.error('Error marking email as read:', error);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, user, cacheInitialized]);
 
   // Mark email as unread in Microsoft Graph
   const markAsUnread = useCallback(async (email: Email) => {
@@ -385,6 +588,15 @@ export function useMailbox() {
     try {
       await microsoftGraphService.markAsUnread(email.graphMessage.id);
       
+      // Update cache
+      if (user && cacheInitialized) {
+        try {
+          await emailCacheService.updateEmailStatus(email.graphMessage.id, { is_read: false });
+        } catch (error) {
+          console.error('Failed to update cache:', error);
+        }
+      }
+      
       // Update local state
       setAllEmails(prev => prev.map(e => 
         e.id === email.id ? { ...e, isRead: false } : e
@@ -392,7 +604,7 @@ export function useMailbox() {
     } catch (error) {
       console.error('Error marking email as unread:', error);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, user, cacheInitialized]);
 
   // Toggle star/flag in Microsoft Graph
   const toggleStar = useCallback(async (email: Email) => {
@@ -401,6 +613,15 @@ export function useMailbox() {
     try {
       await microsoftGraphService.setFlag(email.graphMessage.id, !email.isStarred);
       
+      // Update cache
+      if (user && cacheInitialized) {
+        try {
+          await emailCacheService.updateEmailStatus(email.graphMessage.id, { is_flagged: !email.isStarred });
+        } catch (error) {
+          console.error('Failed to update cache:', error);
+        }
+      }
+      
       // Update local state
       setAllEmails(prev => prev.map(e => 
         e.id === email.id ? { ...e, isStarred: !e.isStarred } : e
@@ -408,7 +629,7 @@ export function useMailbox() {
     } catch (error) {
       console.error('Error toggling star:', error);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, user, cacheInitialized]);
 
   // Delete email from Microsoft Graph and local state
   const deleteEmail = useCallback(async (email: Email) => {
@@ -492,6 +713,15 @@ export function useMailbox() {
           // Fallback: permanently delete if all move attempts fail
           await microsoftGraphService.deleteEmail(email.graphMessage.id);
           
+          // Remove from cache
+          if (user && cacheInitialized) {
+            try {
+              await emailCacheService.deleteEmailFromCache(email.graphMessage.id);
+            } catch (error) {
+              console.error('Failed to delete from cache:', error);
+            }
+          }
+          
           // Remove from local state since it's permanently deleted
           setAllEmails(prev => prev.filter(e => e.id !== email.id));
           console.log('⚠️ Email permanently deleted as fallback');
@@ -519,7 +749,7 @@ export function useMailbox() {
       
       throw error;
     }
-  }, [isSignedIn, selectedEmail, folders]);
+  }, [isSignedIn, selectedEmail, folders, user, cacheInitialized]);
 
   // Refresh emails and folders
   const refreshEmails = useCallback(async () => {
@@ -528,6 +758,13 @@ export function useMailbox() {
       await loadMicrosoftEmails();
     }
   }, [isSignedIn, loadMailFolders, loadMicrosoftEmails]);
+
+  // Clear cache when user signs out
+  useEffect(() => {
+    if (!isSignedIn && !authLoading) {
+      mailboxCache.clear();
+    }
+  }, [isSignedIn, authLoading]);
 
   // Filter emails based on current view and search
   const filteredEmails = allEmails.filter(email => {
@@ -543,6 +780,30 @@ export function useMailbox() {
     email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
     email.preview.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Enhanced search using cache when available
+  const performCachedSearch = useCallback(async (query: string) => {
+    if (!user || !cacheInitialized || !query.trim()) return [];
+    
+    try {
+      return await emailCacheService.searchEmails(query);
+    } catch (error) {
+      console.error('Cache search failed:', error);
+      return [];
+    }
+  }, [user, cacheInitialized]);
+
+  // Get starred emails from cache
+  const getCachedStarredEmails = useCallback(async () => {
+    if (!user || !cacheInitialized) return [];
+    
+    try {
+      return await emailCacheService.getStarredEmails();
+    } catch (error) {
+      console.error('Failed to get starred emails from cache:', error);
+      return [];
+    }
+  }, [user, cacheInitialized]);
 
   // Auto-mark as read when email is selected
   useEffect(() => {
@@ -561,14 +822,19 @@ export function useMailbox() {
     setSearchQuery,
     currentView,
     setCurrentView,
-    isLoading,
+    isLoading: isLoading || isLoadingFromCache,
+    isSyncingInBackground,
     error,
     isConnected: isSignedIn,
+    isCacheEnabled: user && cacheInitialized,
     markAsRead,
     markAsUnread,
     toggleStar,
     deleteEmail,
     refreshEmails,
     loadMailFolders,
+    loadFromCache,
+    performCachedSearch,
+    getCachedStarredEmails,
   };
 } 

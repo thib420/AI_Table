@@ -389,7 +389,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             <Card className="border border-gray-200 shadow-sm">
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl text-gray-900">Starter</CardTitle>
-                <div className="text-4xl font-bold mt-4 text-gray-900">€49<span className="text-lg font-normal text-gray-500">/month</span></div>
+                <div className="text-4xl font-bold mt-4 text-gray-900">CHF49<span className="text-lg font-normal text-gray-500">/month</span></div>
                 <CardDescription className="mt-2 text-gray-600">Perfect for small teams</CardDescription>
               </CardHeader>
               <CardContent>
@@ -425,7 +425,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
               </div>
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl text-gray-900">Professional</CardTitle>
-                <div className="text-4xl font-bold mt-4 text-gray-900">€149<span className="text-lg font-normal text-gray-500">/month</span></div>
+                <div className="text-4xl font-bold mt-4 text-gray-900">CHF149<span className="text-lg font-normal text-gray-500">/month</span></div>
                 <CardDescription className="mt-2 text-gray-600">For growing businesses</CardDescription>
               </CardHeader>
               <CardContent>
