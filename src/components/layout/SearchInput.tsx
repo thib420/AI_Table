@@ -15,7 +15,7 @@ export function SearchInput({
   onSearch
 }: SearchInputProps) {
   return (
-    <div className="bg-background border-t p-4 flex-shrink-0">
+    <div className="bg-background pt-4 pb-24 px-12 flex-shrink-0">
       <div className="max-w-4xl mx-auto">
         <div className="flex space-x-3 items-start">
           {/* Mobile Menu Button */}
