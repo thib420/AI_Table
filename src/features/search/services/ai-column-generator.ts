@@ -252,7 +252,8 @@ export class AIColumnGenerator {
           },
           {
             name: 'Phone',
-            prompt: 'Find their phone number or estimate format based on location (if available).'
+            prompt:
+              "Your goal is to find a contact phone number. Prioritize a direct or mobile number. If none, find the main company number. Format the response as 'Personal: [number]' or 'Company: [number]'. If multiple types are found, use separate lines. If no number can be found at all, respond 'N/A'."
           },
           {
             name: 'Location',
