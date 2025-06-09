@@ -156,54 +156,43 @@ export function useSearchState(
     setSearchState(prev => ({ ...prev, isLoadingMore: true }));
 
     try {
-      const results = await SearchService.performSearch(searchState.query, newResultCount);
-      const enrichedData = results.map(SearchService.processLinkedInData);
-      const processedResults = DataProcessingUtils.processAndSort(
-        enrichedData,
-        searchState.columnFilters,
-        searchState.columnSort
-      );
+      // Fetch the new, larger list of results
+      const newResults = await SearchService.performSearch(searchState.query, newResultCount);
       
-      setSearchState(prev => ({
-        ...prev,
-        results,
-        enrichedResults: enrichedData,
-        filteredResults: DataProcessingUtils.applyFilters(enrichedData, prev.columnFilters),
-        sortedResults: processedResults,
-        currentResultCount: newResultCount,
-        isLoadingMore: false,
-        selectedRows: new Set(),
-        selectedProfile: null,
-      }));
+      // Identify only the new items that we haven't processed yet
+      const existingResultIds = new Set(searchState.results.map(r => r.id));
+      const newItems = newResults.filter(r => !existingResultIds.has(r.id));
 
-      // Enhance new data with Gemini AI
-      SearchService.enhanceWithGemini(enrichedData).then(enhancedResults => {
-        const newProcessedResults = DataProcessingUtils.processAndSort(
-          enhancedResults,
-          searchState.columnFilters,
-          searchState.columnSort
-        );
+      if (newItems.length > 0) {
+        // Process only the new items
+        const processedNewItems = newItems.map(SearchService.processLinkedInData);
         
+        // Enhance only the new items with Gemini
+        const enhancedNewItems = await SearchService.enhanceWithGemini(processedNewItems);
+
+        // Combine with existing enriched results
+        const combinedEnrichedResults = [...searchState.enrichedResults, ...enhancedNewItems];
+
         setSearchState(prev => ({
           ...prev,
-          enrichedResults: enhancedResults,
-          filteredResults: DataProcessingUtils.applyFilters(enhancedResults, prev.columnFilters),
-          sortedResults: newProcessedResults,
-          selectedProfile: null,
+          results: newResults,
+          enrichedResults: combinedEnrichedResults,
+          currentResultCount: newResultCount,
+          isLoadingMore: false,
         }));
-      });
-
+      } else {
+        // No new items found, just stop loading
+        setSearchState(prev => ({ ...prev, isLoadingMore: false }));
+      }
     } catch (error) {
       console.error('Load more error:', error);
       setSearchState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Failed to load more results',
         isLoadingMore: false,
-        selectedRows: new Set(),
-        selectedProfile: null,
       }));
     }
-  }, [searchState.query, searchState.currentResultCount, searchState.isLoadingMore, searchState.columnFilters, searchState.columnSort]);
+  }, [searchState.query, searchState.currentResultCount, searchState.isLoadingMore, searchState.results, searchState.enrichedResults]);
 
   const loadSavedSearch = useCallback((savedSearch: SavedSearchItem) => {
     if (savedSearch.enriched_results_data && savedSearch.column_configuration) {
