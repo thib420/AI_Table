@@ -27,6 +27,7 @@ export interface SearchState {
   currentResultCount: number;
   isLoadingMore: boolean;
   selectedRows: Set<number>;
+  selectedProfile: EnrichedExaResultItem | null;
 }
 
 export interface AppLayoutProps {

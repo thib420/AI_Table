@@ -25,6 +25,7 @@ export function AppLayout({
   handleSave
 }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSearchInputVisible, setIsSearchInputVisible] = useState(true);
 
   // Use the custom hooks
   const {
@@ -38,6 +39,7 @@ export function AppLayout({
     clearAllFilters,
     handleRowSelection,
     deleteSelectedRows,
+    handleSelectProfile,
     getCompleteSearchState
   } = useSearchState(currentPrompt, setCurrentPrompt, recentSearches, setRecentSearches);
 
@@ -47,11 +49,13 @@ export function AppLayout({
   const handleSavedSearchClick = (savedSearch: any) => {
     handleSavedSearchItemClick(savedSearch);
     loadSavedSearch(savedSearch);
+    setIsSearchInputVisible(false);
   };
 
   const handleRecentSearchClick = (query: string) => {
     handleRecentSearchItemClick(query);
     performSearch(query, 10);
+    setIsSearchInputVisible(false);
   };
 
   const handleQueryChange = (query: string) => {
@@ -60,6 +64,7 @@ export function AppLayout({
 
   const handleSearch = (query: string) => {
     performSearch(query, 10);
+    setIsSearchInputVisible(false);
   };
 
   // Expose API for backward compatibility
@@ -129,10 +134,16 @@ export function AppLayout({
                   query: '',
                   results: [],
                   enrichedResults: [],
+                  sortedResults: [],
+                  filteredResults: [],
                   error: null,
-                  selectedRows: new Set()
+                  selectedRows: new Set(),
+                  columns: prev.columns.filter(c => c.type === 'default'),
+                  columnFilters: [],
+                  columnSort: null,
                 }));
                 setCurrentPrompt('');
+                setIsSearchInputVisible(true);
               }}
               className="w-full bg-white/10 hover:bg-white/20 text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors"
             >
@@ -197,7 +208,7 @@ export function AppLayout({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-0 relative bg-background rounded-l-2xl">
+      <div className="flex-1 flex flex-col min-h-0 relative bg-background rounded-tl-2xl">
         {/* Content */}
         <main className="flex-1 overflow-hidden">
           <div className="h-full w-full flex flex-col">
@@ -213,6 +224,7 @@ export function AppLayout({
                 onLoadMoreResults={loadMoreResults}
                 onSave={handleSave}
                 onRowSelection={handleRowSelection}
+                onProfileSelect={handleSelectProfile}
                 isAddingAIColumn={searchState.isAddingAIColumn}
                 selectedRowsCount={searchState.selectedRows.size}
               />
@@ -221,18 +233,20 @@ export function AppLayout({
         </main>
 
         {/* Fixed Search Input at Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background to-background/0 pt-8 pb-6 rounded-bl-2xl">
-          <div className="w-full max-w-2xl mx-auto px-6">
-            <SearchInput
-              query={searchState.query}
-              isLoading={searchState.isLoading}
-              sidebarOpen={false}
-              setSidebarOpen={() => {}}
-              onQueryChange={handleQueryChange}
-              onSearch={handleSearch}
-            />
+        {isSearchInputVisible && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background to-background/0 pt-8 pb-6">
+            <div className="w-full max-w-2xl mx-auto px-6">
+              <SearchInput
+                query={searchState.query}
+                isLoading={searchState.isLoading}
+                sidebarOpen={false}
+                setSidebarOpen={() => {}}
+                onQueryChange={handleQueryChange}
+                onSearch={handleSearch}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

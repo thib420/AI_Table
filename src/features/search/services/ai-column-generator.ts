@@ -9,6 +9,13 @@ export interface ColumnDef {
 }
 
 export interface EnrichedExaResultItem extends ExaResultItem {
+  cleanTitle?: string;
+  company?: string;
+  companyUrl?: string;
+  cleanDescription?: string;
+  profilePicture?: string;
+  cleanPosition?: string;
+  extractedCompany?: string;
   [key: string]: unknown; // For dynamic AI-generated columns
 }
 

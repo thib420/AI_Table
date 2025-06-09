@@ -7,7 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ResultsTable } from '@/features/search/components/ResultsTable';
 import { AIColumnGenerator } from '@/features/search/services/ai-column-generator';
-import { SearchResultsProps } from '@/types/search';
+import { SearchResultsProps as SearchResultsPropsType } from '@/types/search';
+import { EnrichedExaResultItem } from '../services/ai-column-generator';
+import { ProfileSidebar } from './ProfileSidebar';
+
+interface SearchResultsProps extends SearchResultsPropsType {
+  onProfileSelect: (profile: EnrichedExaResultItem | null) => void;
+}
 
 export function SearchResults({
   searchState,
@@ -19,6 +25,7 @@ export function SearchResults({
   onLoadMoreResults,
   onSave,
   onRowSelection,
+  onProfileSelect,
   isAddingAIColumn,
   selectedRowsCount,
   onContactsCreated
@@ -103,7 +110,7 @@ export function SearchResults({
     return (
       <div className="h-full flex flex-col">
         {/* Results Header */}
-        <div className="flex-shrink-0 space-y-2 mb-4">
+        <div className="flex-shrink-0 space-y-2 mb-8">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h2 className="text-2xl font-semibold">Search Results</h2>
@@ -222,25 +229,16 @@ export function SearchResults({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              <Button 
-                onClick={onSave} 
-                variant="default" 
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Bookmark className="h-4 w-4 mr-2" />
-                Save Search
-              </Button>
             </div>
           </div>
         </div>
 
         {/* Results Table - Full Height */}
-        <div className="flex-1 min-h-0 border border-border rounded-xl">
+        <div className="border border-border rounded-xl overflow-hidden">
           <ResultsTable
             results={searchState.sortedResults}
             columns={searchState.columns}
+            onRowClick={onProfileSelect}
             isAddingAIColumn={searchState.isAddingAIColumn}
             aiProcessing={searchState.aiProcessing}
             selectedRows={(() => {
@@ -283,6 +281,11 @@ export function SearchResults({
             onColumnSortChange={onColumnSortChange}
           />
         </div>
+        
+        <ProfileSidebar 
+          profile={searchState.selectedProfile} 
+          onClose={() => onProfileSelect(null)} 
+        />
 
         {/* Load More Button */}
         {searchState.currentResultCount < 100 && (

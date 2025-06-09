@@ -40,7 +40,8 @@ export function useSearchState(
     isEnhancingWithAI: false,
     currentResultCount: 10,
     isLoadingMore: false,
-    selectedRows: new Set()
+    selectedRows: new Set(),
+    selectedProfile: null,
   });
 
   // Update search query when currentPrompt changes
@@ -72,7 +73,8 @@ export function useSearchState(
       isLoading: true, 
       error: null,
       query: query.trim(),
-      aiProcessing: {}
+      aiProcessing: {},
+      selectedProfile: null,
     }));
 
     try {
@@ -96,7 +98,8 @@ export function useSearchState(
         isAddingAIColumn: false,
         currentResultCount: numResults,
         isLoadingMore: false,
-        selectedRows: new Set()
+        selectedRows: new Set(),
+        selectedProfile: null,
       }));
 
       // Enhance data with Gemini AI in the background
@@ -107,7 +110,8 @@ export function useSearchState(
           enrichedResults: enhancedResults,
           filteredResults: enhancedResults,
           sortedResults: enhancedResults,
-          isEnhancingWithAI: false
+          isEnhancingWithAI: false,
+          selectedProfile: null,
         }));
       }).catch(error => {
         console.error('Failed to enhance with AI:', error);
@@ -138,7 +142,8 @@ export function useSearchState(
         aiProcessing: {},
         isAddingAIColumn: false,
         isLoadingMore: false,
-        selectedRows: new Set()
+        selectedRows: new Set(),
+        selectedProfile: null,
       }));
     }
   }, [recentSearches, setRecentSearches, setCurrentPrompt, addToast]);
@@ -166,7 +171,9 @@ export function useSearchState(
         filteredResults: DataProcessingUtils.applyFilters(enrichedData, prev.columnFilters),
         sortedResults: processedResults,
         currentResultCount: newResultCount,
-        isLoadingMore: false
+        isLoadingMore: false,
+        selectedRows: new Set(),
+        selectedProfile: null,
       }));
 
       // Enhance new data with Gemini AI
@@ -181,7 +188,8 @@ export function useSearchState(
           ...prev,
           enrichedResults: enhancedResults,
           filteredResults: DataProcessingUtils.applyFilters(enhancedResults, prev.columnFilters),
-          sortedResults: newProcessedResults
+          sortedResults: newProcessedResults,
+          selectedProfile: null,
         }));
       });
 
@@ -190,7 +198,9 @@ export function useSearchState(
       setSearchState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Failed to load more results',
-        isLoadingMore: false
+        isLoadingMore: false,
+        selectedRows: new Set(),
+        selectedProfile: null,
       }));
     }
   }, [searchState.query, searchState.currentResultCount, searchState.isLoadingMore, searchState.columnFilters, searchState.columnSort]);
@@ -214,7 +224,8 @@ export function useSearchState(
         isEnhancingWithAI: false,
         currentResultCount: savedSearch.search_results_data?.length || 0,
         isLoadingMore: false,
-        selectedRows: new Set()
+        selectedRows: new Set(),
+        selectedProfile: null,
       });
     } else if (savedSearch.search_results_data) {
       // Load basic saved search
@@ -235,7 +246,8 @@ export function useSearchState(
         isEnhancingWithAI: false,
         currentResultCount: savedSearch.search_results_data.length,
         isLoadingMore: false,
-        selectedRows: new Set()
+        selectedRows: new Set(),
+        selectedProfile: null,
       });
     } else {
       // Fallback: perform new search
@@ -319,8 +331,14 @@ export function useSearchState(
     });
   }, []);
 
-  const getCompleteSearchState = useCallback((): CompleteSearchState | null => {
-    if (!searchState.query || searchState.results.length === 0) return null;
+  const handleSelectProfile = useCallback((profile: EnrichedExaResultItem | null) => {
+    setSearchState(prev => ({
+      ...prev,
+      selectedProfile: profile
+    }));
+  }, []);
+
+  const getCompleteSearchState = useCallback((): CompleteSearchState => {
     return {
       query: searchState.query,
       originalResults: searchState.results,
@@ -340,6 +358,7 @@ export function useSearchState(
     clearAllFilters,
     handleRowSelection,
     deleteSelectedRows,
+    handleSelectProfile,
     getCompleteSearchState
   };
 } 

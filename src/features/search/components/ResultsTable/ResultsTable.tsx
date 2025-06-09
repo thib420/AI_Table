@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { ExternalLink, Plus, Sparkles, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { EnrichedExaResultItem, ColumnDef } from '../../services/ai-column-generator';
-import { ColumnFilter } from '@/features/search/components/ColumnFilter';
+import { ColumnFilter as ColumnFilterType } from '@/features/search/components/ColumnFilter';
 import { ColumnSortIndicator, ColumnSort, sortData } from '@/features/search/components/ColumnSort';
+import { DataProcessingUtils } from '@/lib/dataProcessing';
 
 interface ResultsTableProps {
   results: EnrichedExaResultItem[];
@@ -22,8 +23,9 @@ interface ResultsTableProps {
   };
   selectedRows?: Set<number>;
   onRowSelection?: (selectedRows: Set<number>) => void;
-  columnFilters?: ColumnFilter[];
-  onColumnFiltersChange?: (filters: ColumnFilter[]) => void;
+  onRowClick?: (profile: EnrichedExaResultItem) => void;
+  columnFilters?: ColumnFilterType[];
+  onColumnFiltersChange?: (filters: ColumnFilterType[]) => void;
   columnSort?: ColumnSort | null;
   onColumnSortChange?: (sort: ColumnSort | null) => void;
   isLoading?: boolean;
@@ -37,6 +39,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
   aiProcessing = {},
   selectedRows = new Set(),
   onRowSelection,
+  onRowClick,
   columnFilters = [],
   onColumnFiltersChange,
   columnSort,
@@ -45,39 +48,37 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
 }) => {
   const [showFilters, setShowFilters] = useState(false);
 
+  const getCompanyLogoUrl = (companyUrl?: string): string | null => {
+    if (!companyUrl || companyUrl === 'N/A') {
+      return null;
+    }
+    try {
+      const fullUrl = companyUrl.startsWith('http') ? companyUrl : `https://` + companyUrl;
+      const url = new URL(fullUrl);
+      return `https://logo.clearbit.com/${url.hostname}`;
+    } catch (e) {
+      console.error("Invalid company URL for logo:", companyUrl);
+      return null;
+    }
+  };
+
   // Apply filters and sorting
   const processedResults = useMemo(() => {
-    let filtered = results;
+    let filteredData = results;
 
     // Apply column filters
     if (columnFilters.length > 0) {
-      filtered = filtered.filter(result => {
-        return columnFilters.every(filter => {
-          const value = String((result as any)[filter.columnId] || '').toLowerCase();
-          const filterValue = filter.value.toLowerCase();
-          
-          switch (filter.operator) {
-            case 'contains':
-              return value.includes(filterValue);
-            case 'equals':
-              return value === filterValue;
-            case 'startsWith':
-              return value.startsWith(filterValue);
-            case 'endsWith':
-              return value.endsWith(filterValue);
-            default:
-              return true;
-          }
-        });
-      });
+      // This is delegated to the parent, but if filters are passed, we apply them
+      // This might be redundant if parent already filters, but ensures consistency.
+      filteredData = DataProcessingUtils.applyFilters(results, columnFilters);
     }
 
     // Apply sorting
     if (columnSort) {
-      filtered = sortData(filtered, columnSort, (item, colId) => (item as any)[colId]);
+      filteredData = sortData(filteredData, columnSort, (item, colId) => (item as any)[colId]);
     }
 
-    return filtered;
+    return filteredData;
   }, [results, columnFilters, columnSort]);
 
   const handleSelectAll = (checked: boolean) => {
@@ -160,53 +161,6 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
 
   return (
     <div className="h-full flex flex-col">
-      {/* Controls */}
-      <div className="flex-shrink-0 flex items-center justify-between p-4 border-b">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-muted-foreground">
-            {processedResults.length} result{processedResults.length !== 1 ? 's' : ''}
-            {results.length !== processedResults.length && ` (filtered from ${results.length})`}
-          </span>
-          {selectedRows.size > 0 && (
-            <Badge variant="secondary">
-              {selectedRows.size} selected
-            </Badge>
-          )}
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-          </Button>
-          
-          {onAddAIColumn && (
-            <Button
-              onClick={onAddAIColumn}
-              disabled={isAddingAIColumn}
-              size="sm"
-              variant="outline"
-            >
-              {isAddingAIColumn ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Adding...
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add AI Column
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </div>
-
       {/* Filters */}
       {showFilters && onColumnFiltersChange && (
         <div className="flex-shrink-0 p-4 border-b bg-muted/20 rounded-t-xl">
@@ -254,8 +208,15 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
           </thead>
           <tbody>
             {processedResults.map((result, index) => (
-              <tr key={index} className="border-b hover:bg-muted/50">
-                <td className="p-3">
+              <tr 
+                key={result.id || index} 
+                className="border-b hover:bg-muted/50 cursor-pointer"
+                onClick={() => onRowClick?.(result)}
+              >
+                <td 
+                  className="p-3"
+                  onClick={(e) => e.stopPropagation()} // Prevent row click from triggering when clicking checkbox
+                >
                   <Checkbox
                     checked={selectedRows.has(index)}
                     onCheckedChange={(checked) => handleRowSelect(index, checked as boolean)}
@@ -278,6 +239,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center text-blue-600 hover:text-blue-800 truncate"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <ExternalLink className="h-4 w-4 mr-1 flex-shrink-0" />
                           <span className="truncate">{value}</span>
@@ -289,13 +251,33 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                           </div>
                         </div>
                       ) : column.accessorKey === 'company' ? (
-                        <div className="text-sm font-medium">
-                          {String(value)}
+                        <div className="flex items-center space-x-2">
+                          {(() => {
+                            const logoUrl = getCompanyLogoUrl(result.companyUrl);
+                            const fallbackLogoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(String(value).charAt(0) || 'C')}&size=40&background=e5e7eb&color=374151&bold=true&format=png`;
+                            
+                            return (
+                              <img
+                                src={logoUrl || fallbackLogoUrl}
+                                alt={`${String(value)} logo`}
+                                className="w-8 h-8 rounded-md flex-shrink-0 object-contain"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (target.src !== fallbackLogoUrl) {
+                                    target.src = fallbackLogoUrl;
+                                  }
+                                }}
+                              />
+                            );
+                          })()}
+                          <span className="text-sm font-medium truncate">
+                            {String(value)}
+                          </span>
                         </div>
                       ) : column.accessorKey === 'author' ? (
                         <div className="flex items-center space-x-3">
                           <img
-                            src={result.image || result.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(String(value))}&size=40&background=6366f1&color=fff&bold=true&format=png`}
+                            src={String(result.image || result.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(String(value))}&size=40&background=6366f1&color=fff&bold=true&format=png`)}
                             alt={`${String(value)} profile`}
                             className="w-8 h-8 rounded-full flex-shrink-0 bg-gray-100"
                             onError={(e) => {

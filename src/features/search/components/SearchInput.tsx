@@ -39,14 +39,14 @@ export function SearchInput({
 
       {/* Search Input Container */}
       <div className="relative max-w-4xl mx-auto">
-        <div className="relative border border-border rounded-xl bg-background shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-end gap-x-2 border border-border rounded-xl bg-background shadow-sm hover:shadow-md transition-shadow p-2">
           <Textarea
             placeholder="Search for professional profiles... (e.g., 'Software engineers in San Francisco')"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="resize-none border-0 bg-transparent px-4 py-4 pr-12 text-base focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[52px] max-h-32"
-            rows={1}
+            className="flex-1 resize-none border-0 bg-transparent text-base focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/80 py-2 px-2"
+            rows={2}
             disabled={isLoading}
           />
           
@@ -55,7 +55,7 @@ export function SearchInput({
             onClick={() => query.trim() && !isLoading && onSearch(query)}
             disabled={!query.trim() || isLoading}
             size="icon"
-            className="absolute right-2 bottom-2 h-8 w-8 rounded-lg bg-primary hover:bg-primary/90 disabled:bg-muted disabled:opacity-50"
+            className="h-10 w-10 rounded-full bg-primary hover:bg-primary/90 disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:opacity-100 flex-shrink-0"
           >
             {isLoading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
@@ -64,13 +64,6 @@ export function SearchInput({
             )}
           </Button>
         </div>
-        
-        {/* Helper Text */}
-        {!query && !isLoading && (
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Try: "Marketing directors at tech companies" or "Product managers in Paris"
-          </p>
-        )}
       </div>
     </div>
   );

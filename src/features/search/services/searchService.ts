@@ -44,6 +44,7 @@ export class SearchService {
       ...result,
       cleanTitle: 'Processing...', // Will be filled by Gemini
       company: 'Processing...', // Will be filled by Gemini
+      companyUrl: 'Processing...', // Will be filled by Gemini
       cleanDescription: 'Processing...', // Will be filled by Gemini
       profilePicture, // Profile picture URL (prefer Exa API image)
       cleanPosition: result.title || 'N/A', // Fallback
@@ -77,8 +78,6 @@ export class SearchService {
     }
   }
 
-
-
   static async enhanceWithGemini(results: EnrichedExaResultItem[]): Promise<EnrichedExaResultItem[]> {
     try {
       console.log('🤖 Starting Gemini enhancement for', results.length, 'profiles');
@@ -104,7 +103,12 @@ For each profile, extract:
    - Extract from current job or most recent position
    - No extra words like "at" or descriptors
 
-3. cleanDescription: A 1-2 sentence professional summary (max 150 characters)
+3. companyUrl: The website URL of the company (e.g., "https://www.google.com").
+   - Find the official company website. If the text mentions "Website: [url]", use that.
+   - If not found, construct a likely domain from the company name (e.g., "Acme Inc" -> "acme.com", "PayFit" -> "payfit.com").
+   - If you still cannot determine it, use "N/A".
+
+4. cleanDescription: A 1-2 sentence professional summary (max 150 characters)
    - Focus on expertise, role, or key achievements
    - Make it scannable and relevant
    - Extract from bio or current job description
@@ -118,7 +122,7 @@ Input profiles:
 ${JSON.stringify(dataForAnalysis, null, 2)}
 
 Return this exact JSON format:
-[{"index":0,"cleanTitle":"Job Title","company":"Company Name","cleanDescription":"Brief professional summary"}]`;
+[{"index":0,"cleanTitle":"Job Title","company":"Company Name","companyUrl":"https://company.com","cleanDescription":"Brief professional summary"}]`;
 
       const response = await fetch('/api/gemini', {
         method: 'POST',
@@ -167,6 +171,7 @@ Return this exact JSON format:
             ...result,
             cleanTitle: enhancement.cleanTitle || 'N/A',
             company: enhancement.company || 'N/A',
+            companyUrl: enhancement.companyUrl || 'N/A',
             cleanDescription: enhancement.cleanDescription || 'No description available',
             // Keep the profile picture from initial processing (prefers Exa image)
             profilePicture: result.profilePicture,
@@ -179,6 +184,7 @@ Return this exact JSON format:
           ...result,
           cleanTitle: 'N/A',
           company: 'N/A',
+          companyUrl: 'N/A',
           cleanDescription: 'No description available',
           profilePicture: result.profilePicture,
           cleanPosition: 'N/A',
@@ -196,6 +202,7 @@ Return this exact JSON format:
         ...result,
         cleanTitle: result.title || 'N/A',
         company: 'N/A',
+        companyUrl: 'N/A',
         cleanDescription: 'Processing failed',
         profilePicture: result.profilePicture, // Already processed to prefer Exa image
         cleanPosition: result.title || 'N/A',
