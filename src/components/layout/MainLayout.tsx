@@ -5,16 +5,11 @@ import { User } from '@supabase/supabase-js';
 import { routePreloader } from '@/shared/services/RoutePreloader';
 import { 
   Search, 
-  Mail, 
-  Users, 
-  Send, 
   Menu, 
   Moon, 
   Sun, 
   LogOut, 
   Settings,
-  Building2,
-  Inbox,
   ChevronLeft,
   ChevronRight,
   User as UserIcon
@@ -28,8 +23,8 @@ import { useTheme } from 'next-themes';
 interface MainLayoutProps {
   user: User | null;
   children: React.ReactNode;
-  currentModule: 'ai-table' | 'mailbox' | 'crm' | 'email-campaign';
-  onModuleChange: (module: 'ai-table' | 'mailbox' | 'crm' | 'email-campaign') => void;
+  currentModule: 'ai-table';
+  onModuleChange: (module: 'ai-table') => void;
   onLogout: () => void;
   onCustomerView?: (customerId: string) => void;
   microsoftAccount?: any;
@@ -47,36 +42,6 @@ const navigationItems = [
     bgColor: 'bg-blue-50 dark:bg-blue-950',
     borderColor: 'border-blue-200 dark:border-blue-800',
     activeBg: 'bg-blue-600 dark:bg-blue-600'
-  },
-  {
-    id: 'mailbox' as const,
-    label: 'Mailbox',
-    icon: Inbox,
-    description: 'Outlook Integration',
-    color: 'text-orange-600 dark:text-orange-400',
-    bgColor: 'bg-orange-50 dark:bg-orange-950',
-    borderColor: 'border-orange-200 dark:border-orange-800',
-    activeBg: 'bg-orange-600 dark:bg-orange-600'
-  },
-  {
-    id: 'crm' as const,
-    label: 'CRM',
-    icon: Users,
-    description: 'Customer Management',
-    color: 'text-green-600 dark:text-green-400',
-    bgColor: 'bg-green-50 dark:bg-green-950',
-    borderColor: 'border-green-200 dark:border-green-800',
-    activeBg: 'bg-green-600 dark:bg-green-600'
-  },
-  {
-    id: 'email-campaign' as const,
-    label: 'Email Campaign',
-    icon: Send,
-    description: 'Marketing Automation',
-    color: 'text-purple-600 dark:text-purple-400',
-    bgColor: 'bg-purple-50 dark:bg-purple-950',
-    borderColor: 'border-purple-200 dark:border-purple-800',
-    activeBg: 'bg-purple-600 dark:bg-purple-600'
   }
 ];
 

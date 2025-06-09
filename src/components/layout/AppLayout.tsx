@@ -208,7 +208,7 @@ export function AppLayout({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-0 relative bg-background rounded-tl-2xl">
+      <div className="flex-1 flex flex-col min-h-0 relative bg-background rounded-l-2xl">
         {/* Content */}
         <main className="flex-1 overflow-hidden">
           <div className="h-full w-full flex flex-col">
