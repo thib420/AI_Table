@@ -3,7 +3,7 @@
 import * as React from "react"
 import { createContext, useContext, useState, useCallback } from "react"
 import { X } from "lucide-react"
-import { cn } from "@/shared/lib/utils"
+import { cn } from "@/lib/utils"
 
 // Generate unique IDs with better uniqueness
 let toastCounter = 0
