@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Email } from './useMailbox';
+import { Email } from '../../hooks/useProgressiveMailbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star, Paperclip, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

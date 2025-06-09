@@ -1,5 +1,5 @@
 import React from 'react';
-import { Email } from './useMailbox';
+import { Email } from '../../hooks/useProgressiveMailbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Mail, Users, Reply, Forward, Archive, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePersistentData } from '@/shared/hooks/usePersistentData';
-import { Email, MailboxFolder } from '../components/MailboxPage/useMailbox';
+import { Email, MailboxFolder } from './useProgressiveMailbox';
 import { Message } from '@microsoft/microsoft-graph-types';
 import { useMicrosoftAuth } from '../services/MicrosoftAuthContext';
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useUnifiedAuth } from '@/shared/contexts/UnifiedAuthContext';
 import { supabase } from '@/shared/lib/supabase/client';
 import { LandingPage } from '@/modules/landing';
+import { fluidDataService } from '@/shared/services/FluidDataService';
 // Lazy load heavy components for faster initial load
 import dynamic from 'next/dynamic';
 
@@ -66,6 +67,14 @@ export default function AppPage() {
       authIsLoading
     });
   }, [user, hasAnyAuth, isMicrosoftSignedIn, authIsLoading]);
+
+  // Initialize fluid data service when user is available
+  useEffect(() => {
+    if (user?.id) {
+      console.log('🚀 Initializing FluidDataService for user:', user.id);
+      fluidDataService.initialize(user.id).catch(console.error);
+    }
+  }, [user?.id]);
   const { fetchSavedSearches, saveCompleteSearch, deleteSavedSearch } = useSearchHistory();
 
   const [currentModule, setCurrentModule] = useState<BusinessModule>('ai-table');

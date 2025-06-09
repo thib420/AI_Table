@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Inbox, Star, Send, Mail, Archive, Calendar, Users, RefreshCw, CheckCircle2, Folder, Trash2 } from 'lucide-react';
 import { contactSyncService } from '../../services/ContactSyncService';
-import { Email, MailboxFolder } from './useMailbox';
+import { Email, MailboxFolder } from '../../hooks/useProgressiveMailbox';
 import { ContactSyncSettingsButton } from '../ContactSyncSettings';
 
 interface MailboxSidebarProps {

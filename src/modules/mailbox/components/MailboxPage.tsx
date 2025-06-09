@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, memo } from 'react';
-import { useMailbox, Email } from './MailboxPage/useMailbox';
+import { useFluidMailbox } from '@/shared/hooks/useFluidData';
+import { useUnifiedAuth } from '@/shared/contexts/UnifiedAuthContext';
+import { useMailboxFilters } from '../hooks/useMailboxFilters';
 import { MailboxSidebar } from './MailboxPage/MailboxSidebar';
 import { MailboxList } from './MailboxPage/MailboxList';
 import { MailboxDetail } from './MailboxPage/MailboxDetail';
@@ -11,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RefreshCw, Wifi, WifiOff, Mail, LogOut, AlertCircle, Settings } from 'lucide-react';
-import { CacheStatusBadge } from './CacheStatusBadge';
+import { LoadingProgress } from '@/components/ui/LoadingProgress';
 
 interface MailboxPageProps {
   onCustomerView?: (customerId: string) => void;
@@ -19,31 +21,51 @@ interface MailboxPageProps {
 }
 
 const MailboxPageComponent = function MailboxPage({ onCustomerView, onNavigateToCRM }: MailboxPageProps = {}) {
+  const { user } = useUnifiedAuth();
   const { isSignedIn, isLoading: authLoading, signIn, signOut, userProfile } = useMicrosoftAuth();
   const [showSetupHelp, setShowSetupHelp] = useState(false);
   const [useDemoMode, setUseDemoMode] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  
   const {
     emails,
-    allEmails,
     folders,
-    selectedEmail,
-    setSelectedEmail,
+    isLoading,
+    isCacheStale,
+    refresh,
+    getEmails,
+    getFolders
+  } = useFluidMailbox(user?.id);
+
+  const {
+    filteredEmails,
     searchQuery,
     setSearchQuery,
     currentView,
     setCurrentView,
-    isLoading,
-    isSyncingInBackground,
-    error,
-    isConnected,
-    isCacheEnabled,
-    refreshEmails,
-    markAsRead,
-    markAsUnread,
-    toggleStar,
-    deleteEmail,
-    loadFromCache,
-  } = useMailbox();
+    unreadCount,
+    hasEmails
+  } = useMailboxFilters(emails);
+
+  // Mock email actions (TODO: implement with Microsoft Graph)
+  const markAsRead = async (email: any) => {
+    console.log('📧 TODO: Mark as read in Microsoft Graph:', email.id);
+  };
+
+  const markAsUnread = async (email: any) => {
+    console.log('📧 TODO: Mark as unread in Microsoft Graph:', email.id);
+  };
+
+  const toggleStar = async (email: any) => {
+    console.log('📧 TODO: Toggle star in Microsoft Graph:', email.id);
+  };
+
+  const deleteEmail = async (email: any) => {
+    console.log('📧 TODO: Delete in Microsoft Graph:', email.id);
+  };
+
+  
 
   // Helper for viewing CRM - navigates to CRM module
   const handleViewCRM = () => {
@@ -66,7 +88,7 @@ const MailboxPageComponent = function MailboxPage({ onCustomerView, onNavigateTo
   // Helper for email deletion - immediate action
   const handleDeleteEmail = async (email: Email) => {
     try {
-      await deleteEmail(email);
+      await deleteEmail(email.id);
     } catch (error) {
       console.error('Failed to delete email:', error);
       alert('Failed to delete email. Please try again.');
@@ -75,21 +97,27 @@ const MailboxPageComponent = function MailboxPage({ onCustomerView, onNavigateTo
 
   const handleMicrosoftSignIn = async () => {
     try {
+      setError(null);
       await signIn();
     } catch (error) {
       console.error('Sign in failed:', error);
       // Check if it's a client ID issue
       if (error instanceof Error && error.message.includes('client_id')) {
         setShowSetupHelp(true);
+        setError('Microsoft client ID not configured. Please check your environment variables.');
+      } else {
+        setError('Failed to sign in to Microsoft. Please try again.');
       }
     }
   };
 
   const handleMicrosoftSignOut = async () => {
     try {
+      setError(null);
       await signOut();
     } catch (error) {
       console.error('Sign out failed:', error);
+      setError('Failed to sign out. Please try again.');
     }
   };
 
@@ -199,7 +227,7 @@ const MailboxPageComponent = function MailboxPage({ onCustomerView, onNavigateTo
         <div className="flex h-14 items-center justify-between px-6">
           <div className="flex items-center space-x-4">
             <h2 className="text-lg font-semibold">Mailbox</h2>
-            {isConnected ? (
+            {isSignedIn ? (
               <Badge variant="default" className="flex items-center gap-1">
                 <Wifi className="h-3 w-3" />
                 Connected
@@ -210,12 +238,18 @@ const MailboxPageComponent = function MailboxPage({ onCustomerView, onNavigateTo
                 Demo Mode
               </Badge>
             )}
-            <CacheStatusBadge 
-              isCacheEnabled={isCacheEnabled}
-              onClearCache={loadFromCache}
-              onRefreshCache={refreshEmails}
-              isSyncing={isSyncingInBackground}
-            />
+            {isLoading && (
+              <LoadingProgress 
+                isLoading={isLoading}
+                message="Loading emails..."
+                variant="minimal"
+              />
+            )}
+            {isCacheStale && !isLoading && (
+              <Badge variant="outline" className="text-xs">
+                Refreshing...
+              </Badge>
+            )}
             {userProfile && (
               <span className="text-sm text-muted-foreground">
                 {userProfile.displayName || userProfile.mail}
@@ -224,18 +258,18 @@ const MailboxPageComponent = function MailboxPage({ onCustomerView, onNavigateTo
           </div>
           
           <div className="flex items-center space-x-2">
-            {isConnected && (
+            {isSignedIn && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={refreshEmails}
+                onClick={refresh}
                 disabled={isLoading}
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
             )}
             
-            {!isConnected ? (
+            {!isSignedIn ? (
               <Button variant="outline" size="sm" onClick={handleMicrosoftSignIn}>
                 <Mail className="h-4 w-4 mr-2" />
                 Connect Microsoft
@@ -279,9 +313,9 @@ const MailboxPageComponent = function MailboxPage({ onCustomerView, onNavigateTo
             setSearchQuery={setSearchQuery}
             folders={folders}
             onViewCRM={handleViewCRM}
-            onViewCustomer={onCustomerView ? handleViewCustomer : undefined}
+            onViewCustomer={onCustomerView}
             selectedEmail={selectedEmail}
-            allEmails={allEmails}
+            allEmails={emails}
           />
           {/* Email List */}
           <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -292,23 +326,23 @@ const MailboxPageComponent = function MailboxPage({ onCustomerView, onNavigateTo
                     ? 'Starred'
                     : folders.find(f => f.id === currentView)?.displayName || 'Emails'}
                   <span className="ml-2 text-xs text-muted-foreground">
-                    ({emails.length})
+                    ({filteredEmails.length})
                   </span>
                 </h3>
               </div>
               <MailboxList
-                emails={emails}
+                emails={filteredEmails}
                 selectedEmailId={selectedEmail?.id || null}
                 onSelect={setSelectedEmail}
                 onToggleStar={toggleStar}
-                onDelete={handleDeleteEmail}
+                onDelete={deleteEmail}
                 onMarkAsRead={markAsRead}
                 onMarkAsUnread={markAsUnread}
               />
             </div>
             {/* Email Content */}
             <div className="flex-1 min-w-0">
-              <MailboxDetail email={selectedEmail} onViewCustomer={onCustomerView ? handleViewCustomer : undefined} />
+              <MailboxDetail email={selectedEmail} onViewCustomer={onCustomerView} />
             </div>
           </div>
         </div>

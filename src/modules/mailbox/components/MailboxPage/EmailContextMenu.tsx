@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Email } from './useMailbox';
+import { Email } from '../../hooks/useProgressiveMailbox';
 import { 
   Star, 
   Mail, 

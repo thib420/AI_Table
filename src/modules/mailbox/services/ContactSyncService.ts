@@ -1,4 +1,4 @@
-import { Email } from '../components/MailboxPage/useMailbox';
+import { Email } from '../hooks/useProgressiveMailbox';
 import { GraphCRMService } from '@/modules/crm/services/GraphCRMService';
 import { Contact } from '@/modules/crm/types';
 import { contactSyncSettings } from './ContactSyncSettings';

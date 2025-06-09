@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
+import { routePreloader } from '@/shared/services/RoutePreloader';
 import { 
   Search, 
   Mail, 
@@ -81,6 +82,40 @@ const navigationItems = [
 
 export function MainLayout({ user, children, currentModule, onModuleChange, onLogout, onCustomerView, microsoftAccount, isMicrosoftSignedIn, hasAnyAuth }: MainLayoutProps) {
   const { theme, setTheme } = useTheme();
+  const [navigationHistory, setNavigationHistory] = useState<string[]>([]);
+
+  // Initialize route preloader and warm up
+  useEffect(() => {
+    routePreloader.configure({
+      preloadComponents: true,
+      preloadData: true,
+      preloadOnHover: true,
+      preloadOnVisible: true
+    });
+
+    // Warm up critical routes
+    routePreloader.warmUp();
+  }, []);
+
+  // Track navigation changes for intelligent prefetching
+  useEffect(() => {
+    setNavigationHistory(prev => {
+      const newHistory = [...prev, currentModule];
+      if (newHistory.length > 10) newHistory.shift();
+      
+      // Trigger intelligent preloading based on patterns
+      routePreloader.preloadBasedOnPattern(currentModule, newHistory);
+      
+      return newHistory;
+    });
+  }, [currentModule]);
+
+  // Enhanced module change with preloading
+  const handleModuleChange = (module: typeof currentModule) => {
+    // Preload with high priority for immediate navigation
+    routePreloader.preloadRoute(module, { priority: 'high', immediate: true });
+    onModuleChange(module);
+  };
 
   const getUserInitials = (user: User) => {
     // Try to get name from various metadata fields
@@ -313,7 +348,8 @@ export function MainLayout({ user, children, currentModule, onModuleChange, onLo
                         ? `${item.activeBg} text-white hover:${item.activeBg}` 
                         : 'hover:bg-muted/80 text-muted-foreground hover:text-foreground'
                     }`}
-                    onClick={() => onModuleChange(item.id)}
+                    onClick={() => handleModuleChange(item.id)}
+                    onMouseEnter={() => routePreloader.preloadOnHover(item.id)}
                   >
                     <item.icon className="h-5 w-5" />
                     {item.id === 'crm' && !isActive && (

@@ -1,4 +1,4 @@
-import { Email, MailboxFolder } from '../components/MailboxPage/useMailbox';
+import { Email, MailboxFolder } from '../hooks/useProgressiveMailbox';
 
 interface MailboxCache {
   emails: Email[];

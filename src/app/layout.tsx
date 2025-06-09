@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Converr - AI-Powered Professional Intelligence Platform",
+    default: "Converrr - AI-Powered Professional Intelligence Platform",
     template: "%s | Converr"
   },
   description: "Transform your professional network into revenue with AI-powered lead generation. Find, analyze, and connect with the right professionals using intelligent search, instant enrichment, and smart organization tools.",
