@@ -29,8 +29,15 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ profile, onClose
     }
   };
 
+  const formatCompanyUrl = (companyUrl?: string): string | undefined => {
+    if (!companyUrl || companyUrl === 'N/A') return undefined;
+    if (companyUrl.startsWith('http')) return companyUrl;
+    return `https://` + companyUrl;
+  };
+
   const fallbackLogoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.company?.charAt(0) || 'C')}&size=40&background=e5e7eb&color=374151&bold=true&format=png`;
   const logoUrl = getCompanyLogoUrl(profile.companyUrl) || fallbackLogoUrl;
+  const formattedCompanyUrl = formatCompanyUrl(profile.companyUrl);
 
   // Extract AI-generated fields (fields that are not part of the base ExaResultItem)
   const baseFields = new Set(['id', 'title', 'url', 'publishedDate', 'author', 'score', 'text', 'image']);
@@ -90,9 +97,9 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ profile, onClose
             <ExternalLink className="h-4 w-4 mr-2" />
             View LinkedIn
           </a>
-          {profile.companyUrl && profile.companyUrl !== 'N/A' && (
+          {formattedCompanyUrl && (
             <a
-              href={profile.companyUrl}
+              href={formattedCompanyUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center p-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
@@ -126,8 +133,15 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ profile, onClose
               />
               <div>
                 <p className="font-semibold text-lg">{profile.company}</p>
-                {profile.companyUrl && profile.companyUrl !== 'N/A' && (
-                  <p className="text-sm text-muted-foreground truncate">{profile.companyUrl}</p>
+                {formattedCompanyUrl && (
+                   <a
+                    href={formattedCompanyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:underline truncate block"
+                  >
+                    {profile.companyUrl}
+                  </a>
                 )}
               </div>
             </div>
